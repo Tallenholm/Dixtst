@@ -3,12 +3,13 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Wifi, Search, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import type { Bridge } from "@shared/types";
 
 export default function BridgeConnection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: bridges = [] } = useQuery({
+  const { data: bridges = [] } = useQuery<Bridge[]>({
     queryKey: ['/api/bridges'],
   });
 
@@ -59,7 +60,9 @@ export default function BridgeConnection() {
     },
   });
 
-  const connectedBridge = bridges.find((bridge: any) => bridge.isConnected);
+  const connectedBridge: Bridge | undefined = bridges.find(
+    (bridge: Bridge) => bridge.isConnected
+  );
 
   return (
     <div className="glassmorphism rounded-2xl p-6 animate-slide-up">

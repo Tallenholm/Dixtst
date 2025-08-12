@@ -16,14 +16,7 @@ const Progress = ({ value, className }: { value: number; className?: string }) =
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Search, Wifi, CheckCircle, AlertCircle, Link as LinkIcon } from "lucide-react";
 import { Link, useLocation } from "wouter";
-
-interface Bridge {
-  id?: string;
-  name: string;
-  ip: string;
-  isConnected?: boolean;
-  username?: string;
-}
+import type { Bridge } from "@shared/types";
 
 export default function BridgeSetup() {
   const [, setLocation] = useLocation();
