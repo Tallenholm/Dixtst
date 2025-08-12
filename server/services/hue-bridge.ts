@@ -3,6 +3,10 @@ import type { Bridge, InsertBridge, WSMessage } from '@shared/schema';
 import type { IStorage } from '../storage';
 import logger from '../logger';
 
+function isHueApiError(err: unknown): err is Error & { getHueErrorType(): number } {
+  return err instanceof Error && typeof (err as any).getHueErrorType === 'function';
+}
+
 export class HueBridgeService {
   private storage: IStorage;
   private broadcastCallback?: (message: WSMessage) => void;
@@ -80,13 +84,21 @@ export class HueBridgeService {
       bridge.lastSeen = new Date();
       await this.storage.updateBridge(bridge);
       return true;
-    } catch (err: any) {
-      // Hue error 101 = link button not pressed
-      if (err.getHueErrorType && err.getHueErrorType() === 101) {
-        logger.warn('Link button not pressed, pairing aborted');
-        throw new Error('Please press the Hue Bridge link button and retry pairing.');
+    } catch (err: unknown) {
+      if (isHueApiError(err)) {
+        if (err.getHueErrorType() === 101) {
+          logger.warn('Link button not pressed, pairing aborted');
+          throw new Error('Please press the Hue Bridge link button and retry pairing.');
+        }
+        logger.error('Hue API error during pairing', {
+          hueErrorType: err.getHueErrorType(),
+          message: err.message,
+        });
+      } else if (err instanceof Error) {
+        logger.error('Unexpected error during pairing', { message: err.message });
+      } else {
+        logger.error('Unexpected non-error during pairing', err);
       }
-      logger.error('Unexpected error during pairing', err);
       return false;
     }
   }
