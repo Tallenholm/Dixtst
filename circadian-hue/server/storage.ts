@@ -15,4 +15,4 @@ class MemStorage implements IStorage {
   async setSetting(key:string, value:any){ const s={ key, value, updatedAt: new Date() }; this.settings.set(key,s); return s }
   async deleteSetting(key:string){ return this.settings.delete(key) }
 }
-export const storage = new MemStorage() as unknown as MemStorage & IStorage
+export const storage: IStorage = new MemStorage()
