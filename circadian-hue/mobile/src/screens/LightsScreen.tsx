@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  ListRenderItem,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -15,6 +16,7 @@ import Slider from 'react-native-slider';
 
 import { theme } from '../theme/colors';
 import { useApi, apiRequest } from '../context/ApiContext';
+import type { Light, LightUpdate } from '../types/light';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function LightsScreen() {
@@ -23,7 +25,7 @@ export default function LightsScreen() {
   const [expandedLight, setExpandedLight] = useState<string | null>(null);
 
   // Fetch lights
-  const { data: lights = [], isLoading, refetch } = useQuery({
+  const { data: lights = [], isLoading, refetch } = useQuery<Light[]>({
     queryKey: ['lights'],
     queryFn: () => apiRequest('/api/lights', {}, baseUrl),
     refetchInterval: 10000,
@@ -31,7 +33,7 @@ export default function LightsScreen() {
 
   // Update light mutation
   const updateLightMutation = useMutation({
-    mutationFn: async ({ lightId, updates }: { lightId: string; updates: any }) => {
+    mutationFn: async ({ lightId, updates }: { lightId: string; updates: LightUpdate }) => {
       return apiRequest(`/api/lights/${lightId}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
@@ -46,21 +48,21 @@ export default function LightsScreen() {
     },
   });
 
-  const handleToggleLight = (light: any) => {
+  const handleToggleLight = (light: Light) => {
     updateLightMutation.mutate({
       lightId: light.id,
       updates: { isOn: !light.isOn },
     });
   };
 
-  const handleBrightnessChange = (light: any, brightness: number) => {
+  const handleBrightnessChange = (light: Light, brightness: number) => {
     updateLightMutation.mutate({
       lightId: light.id,
       updates: { brightness: Math.round(brightness) },
     });
   };
 
-  const handleColorTempChange = (light: any, colorTemp: number) => {
+  const handleColorTempChange = (light: Light, colorTemp: number) => {
     updateLightMutation.mutate({
       lightId: light.id,
       updates: { colorTemp: Math.round(colorTemp) },
@@ -81,7 +83,7 @@ export default function LightsScreen() {
     }
   };
 
-  const renderLight = ({ item: light }: { item: any }) => {
+  const renderLight: ListRenderItem<Light> = ({ item: light }) => {
     const isExpanded = expandedLight === light.id;
     const brightnessPercent = Math.round((light.brightness / 254) * 100);
     const colorTempK = light.colorTemp || 2700;
@@ -222,7 +224,7 @@ export default function LightsScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
+      <FlatList<Light>
         data={lights}
         renderItem={renderLight}
         keyExtractor={(item) => item.id}
