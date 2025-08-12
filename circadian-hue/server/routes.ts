@@ -72,12 +72,20 @@ app.post('/api/sleep/winddown', async (req, res) => {
     const startBri = 150, endBri = 30
     const startCt = 350, endCt = 430
     const id = 'winddown'
+    let errors = 0
     scheduler.scheduleInterval(id, async ()=>{
       i++
       const t = Math.min(1, i/steps)
       const bri = Math.round(startBri*(1-t) + endBri*t)
       const ct = Math.round(startCt*(1-t) + endCt*t)
-      try { await hueBridge.applyStateToAllLights({ on:true, bri, ct }) } catch {}
+      try {
+        await hueBridge.applyStateToAllLights({ on:true, bri, ct })
+        errors = 0
+      } catch (err) {
+        errors++
+        console.error('winddown interval failed', err)
+        if (errors >= 5) scheduler.clear(id)
+      }
       if (i>=steps) scheduler.clear(id)
     }, 60*1000)
     res.json({ ok:true, minutes })
