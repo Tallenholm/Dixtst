@@ -130,7 +130,7 @@ app.post('/api/alarm/sunrise', async (req, res) => {
 
   // System status & location (compat)
   app.get('/api/system/status', async (_req, res) => { res.json({ engine: true, updates: true, schedule: true, lastUpdate: new Date().toISOString() }) })
-  app.get('/api/location', async (_req, res) => { try { const loc = await storage.getSetting('location'); res.json(loc?.value || { lat: 41.8781, lng: -87.6298 }) } catch (e:any) { res.status(500).json({ error: e.message }) } })
+  app.get('/api/location', async (_req, res) => { try { const loc = await storage.getSetting<{lat:number;lng:number}>('location'); res.json(loc?.value || { lat: 41.8781, lng: -87.6298 }) } catch (e:any) { res.status(500).json({ error: e.message }) } })
   app.post('/api/location/detect', async (_req, res) => { try { const value={ lat:41.8781, lng:-87.6298 }; await storage.setSetting('location', value); res.json({ value }) } catch (e:any) { res.status(500).json({ error: e.message }) } })
 
   // Schedules (compat shell)
