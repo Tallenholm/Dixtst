@@ -1,5 +1,6 @@
 import type { IStorage } from "../storage"
 import { HueBridgeService } from "./hue-bridge"
+import logger from '../../../server/logger'
 
 type RoomState = {
   enabled: boolean
@@ -57,6 +58,8 @@ export class MusicMode {
 
     try {
       await this.hue.applyStateToAllLights({ on:true, bri: sbri, ct: sct })
-    } catch {}
+    } catch (err) {
+      logger.warn('Failed to apply state to lights', err)
+    }
   }
 }
