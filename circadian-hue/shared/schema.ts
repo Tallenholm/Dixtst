@@ -121,9 +121,17 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+// System status shape
+export interface SystemStatus {
+  engine: boolean;
+  updates: boolean;
+  schedule: boolean;
+  lastUpdate: string;
+}
+
 // WebSocket message types
-export type WSMessage = 
+export type WSMessage =
   | { type: 'light_update'; data: Light }
   | { type: 'bridge_status'; data: { connected: boolean; bridge?: Bridge } }
   | { type: 'circadian_update'; data: { phase: string; nextUpdate: string } }
-  | { type: 'system_status'; data: { engine: boolean; updates: boolean; schedule: boolean; lastUpdate: string } };
+  | { type: 'system_status'; data: SystemStatus };

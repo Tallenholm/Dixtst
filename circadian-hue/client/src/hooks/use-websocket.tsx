@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { WSMessage } from "@shared/schema";
+import type { WSMessage, SystemStatus } from "@shared/schema";
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
@@ -47,10 +47,13 @@ export function useWebSocket() {
               queryClient.invalidateQueries({ queryKey: ['/api/system/status'] });
               break;
             case 'system_status':
-              queryClient.setQueryData(['/api/system/status'], (old: any) => ({
-                ...old,
-                ...message.data
-              }));
+              queryClient.setQueryData<SystemStatus>(
+                ['/api/system/status'],
+                (old: SystemStatus | undefined) => ({
+                  ...(old ?? {}),
+                  ...message.data,
+                })
+              );
               break;
           }
         } catch (error) {
