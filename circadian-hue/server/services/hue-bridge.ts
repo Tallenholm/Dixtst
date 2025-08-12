@@ -4,7 +4,7 @@ type BridgeAuth={ ip:string; username:string }
 export class HueBridgeService {
   private storage: IStorage; private api?: any;
   constructor(storage:IStorage){ this.storage=storage }
-  private async getAuth(): Promise<BridgeAuth|undefined>{ const s=await this.storage.getSetting('bridge_auth'); return s?.value }
+  private async getAuth(): Promise<BridgeAuth|undefined>{ const s=await this.storage.getSetting<BridgeAuth>('bridge_auth'); return s?.value }
   private async saveAuth(a:BridgeAuth){ await this.storage.setSetting('bridge_auth', a) }
   async discover(){ const r=await v3.discovery.nupnpSearch(); return r.map((b:any)=>b.ipaddress).filter(Boolean) }
   async pairWithLinkButton(ip:string, appName='circadian-hue', deviceName='server'){ const unauth=await v3.api.createLocal(ip).connect(); try{ const user=await unauth.users.createUser(appName, deviceName); const a={ip, username:user.username}; await this.saveAuth(a); this.api=await v3.api.createLocal(ip).connect(user.username); return a } catch(e:any){ throw new Error(e?.getHueErrorType?.()===101?'link_button_not_pressed':(e?.message||'pair_failed')) } }
