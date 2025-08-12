@@ -32,11 +32,7 @@ app.post('/api/vibe/dice', async (req, res) => {
   try {
     const { roomId, seed, warmth, intensity } = req.body || {}
     const v = rollVibe({ seed, warmth, intensity })
-    if (roomId) {
-      await hueBridge.applyStateToAllLights({ on:true, bri: v.bri, ct: v.ct })
-    } else {
-      await hueBridge.applyStateToAllLights({ on:true, bri: v.bri, ct: v.ct })
-    }
+    await hueBridge.applyStateToAllLights({ on:true, bri: v.bri, ct: v.ct })
     res.json({ applied: v })
   } catch (e:any) { res.status(500).json({ error: e.message }) }
 })
