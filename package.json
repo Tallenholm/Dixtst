@@ -19,6 +19,7 @@
     "build:server": "cd server && npm run build",
     "build:mobile": "cd mobile && npm run build",
     "build": "npm-run-all build:*",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test"
   }
 }

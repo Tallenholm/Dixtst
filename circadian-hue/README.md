@@ -130,19 +130,12 @@ Key endpoints:
 
 ## 🚀 Deployment
 
-### Using Replit
-
-1. Click "Deploy" in your Replit workspace
-2. Set environment variables
-3. Your app will be available at `your-app.replit.app`
-
-### Manual Deployment
+### Deployment
 
 1. Build the application:
    ```bash
    npm run build
    ```
-
 2. Set production environment variables
 3. Start the server:
    ```bash
