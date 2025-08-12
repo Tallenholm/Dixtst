@@ -69,6 +69,12 @@ export class HueBridgeService {
     return bridges;
   }
 
+  /** Convenience wrapper used by older routes – returns a list of IPs only. */
+  async discover(): Promise<string[]> {
+    const bridges = await this.discoverBridges();
+    return bridges.map(b => b.ip);
+  }
+
   /**
    * Pair with a Hue Bridge by pressing its link button.
    * Throws if button not pressed.
@@ -100,6 +106,106 @@ export class HueBridgeService {
         logger.error('Unexpected non-error during pairing', err);
       }
       return false;
+    }
+  }
+
+  /** Pair with a bridge using the traditional link button flow. */
+  async pairWithLinkButton(ip: string, appName = 'circadian-hue', deviceName = 'server'): Promise<{ ip: string; username: string }> {
+    const unauth = await v3.api.createLocal(ip).connect();
+    try {
+      const user = await unauth.users.createUser(appName, deviceName);
+      await this.storage.insertBridge({ id: ip, ip, username: user.username, isConnected: true } as InsertBridge);
+      return { ip, username: user.username };
+    } catch (e: any) {
+      if (isHueApiError(e) && e.getHueErrorType() === 101) {
+        throw new Error('link_button_not_pressed');
+      }
+      throw e;
+    }
+  }
+
+  private async getApi(): Promise<{ api: any; bridge: Bridge }> {
+    const bridges = await this.storage.getAllBridges();
+    const bridge = bridges[0];
+    if (!bridge) throw new Error('bridge_not_configured');
+    const api = await v3.api.createLocal(bridge.ip).connect(bridge.username);
+    return { api, bridge };
+  }
+
+  /** Compatibility method returning simplified light objects. */
+  async refreshLights() {
+    const { api } = await this.getApi();
+    const lights = await api.lights.getAll();
+    return lights.map((l: any) => ({
+      id: String(l.id),
+      name: l.name,
+      isOn: !!l.state.on,
+      brightness: l.state.bri ?? 0,
+      colorTemp: l.state.ct ?? 0,
+      updatedAt: new Date()
+    }));
+  }
+
+  async setLightState(lightId: string, state: { on?: boolean; bri?: number; ct?: number }) {
+    const { api } = await this.getApi();
+    const st = new v3.lightStates.LightState();
+    if (state.on !== undefined) state.on ? st.on() : st.off();
+    if (typeof state.bri === 'number') st.brightness(Math.max(1, Math.min(254, state.bri)));
+    if (typeof state.ct === 'number') st.ct(Math.max(153, Math.min(500, state.ct)));
+    return api.lights.setLightState(lightId, st);
+  }
+
+  async applyStateToAllLights(state: { on?: boolean; bri?: number; ct?: number }) {
+    const { api } = await this.getApi();
+    const st = new v3.lightStates.GroupLightState();
+    if (state.on !== undefined) state.on ? st.on() : st.off();
+    if (typeof state.bri === 'number') st.brightness(Math.max(1, Math.min(254, state.bri)));
+    if (typeof state.ct === 'number') st.ct(Math.max(153, Math.min(500, state.ct)));
+    try {
+      await api.groups.setGroupState(0, st);
+      return true;
+    } catch {
+      const lights = await api.lights.getAll();
+      for (const l of lights) {
+        await api.lights.setLightState(l.id, st);
+      }
+      return true;
+    }
+  }
+
+  async listRooms() {
+    const { api } = await this.getApi();
+    const groups = await api.groups.getAll();
+    return groups
+      .filter((g: any) => ['Room', 'Zone'].includes(g.type))
+      .map((g: any) => ({ id: String(g.id), name: g.name, type: g.type, lights: (g.lights || []).map((l: any) => String(l)) }));
+  }
+
+  async getRoomLightIds(roomId: string) {
+    const { api } = await this.getApi();
+    const g = await api.groups.getGroup(roomId);
+    return (g?.lights || []).map((l: any) => String(l));
+  }
+
+  async listScenes() {
+    const { api } = await this.getApi();
+    if (!api.scenes) return [];
+    const scenes = await api.scenes.getAll();
+    return scenes.map((s: any) => ({ id: String(s.id), name: s.name, groupId: s.group || s.groupid || s.groupId }));
+  }
+
+  async applySceneToGroup(groupId: string, sceneId: string) {
+    const { api } = await this.getApi();
+    const st = new v3.lightStates.GroupLightState().scene(sceneId);
+    try {
+      await api.groups.setGroupState(groupId, st);
+      return true;
+    } catch {
+      if (api.scenes?.activateScene) {
+        await api.scenes.activateScene(sceneId);
+        return true;
+      }
+      throw new Error('scene_apply_failed');
     }
   }
 

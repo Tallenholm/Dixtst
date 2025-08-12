@@ -57,7 +57,8 @@ export class MusicMode {
     s.lastBri = sbri; s.lastCt = sct
 
     try {
-      await this.hue.applyStateToAllLights({ on:true, bri: sbri, ct: sct })
+      const ids = await this.hue.getRoomLightIds(roomId)
+      await Promise.all(ids.map(id => this.hue.setLightState(id, { on: true, bri: sbri, ct: sct })))
     } catch (err) {
       logger.warn('Failed to apply state to lights', err)
     }

@@ -7,9 +7,9 @@ import { HueBridgeService } from './services/hue-bridge'
   import { rollVibe } from './lib/vibe'
   import { Scheduler } from './services/scheduler'
 import { getSunTimes, getCurrentPhase } from './lib/sun'
-import { listOverrides } from './lib/overrides'
 import { DEFAULT_PROFILES } from './lib/profiles'
 import { getRoomSchedule, setRoomSchedule } from './lib/schedule'
+import { createOverridesRouter } from './routes/overrides'
 
 export async function registerRoutes(app: ReturnType<typeof express>) {
   const server = http.createServer(app)
@@ -19,6 +19,8 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
     const scheduler = new Scheduler()
 
   wss.on('connection', (ws) => { ws.send(JSON.stringify({ type:'welcome' })) })
+
+  app.use('/api/overrides', createOverridesRouter(storage))
 
   // Core for UI
   app.get('/api/rooms', async (_req,res)=>{ try{ res.json({ rooms: await hueBridge.listRooms() }) } catch(e:any){ res.status(500).json({error:e.message}) } })
@@ -126,7 +128,17 @@ app.post('/api/alarm/sunrise', async (req, res) => {
   // Lights (compat)
   app.get('/api/lights', async (_req, res) => { try { const lights = await hueBridge.refreshLights(); res.json(lights) } catch (e:any) { res.status(500).json({ error: e.message }) } })
   app.post('/api/rooms', async (_req, res) => { res.json({ ok: true }) })
-  app.post('/api/rooms/:roomId/toggle', async (req, res) => { try { const isOn = !!req.body?.isOn; await hueBridge.applyStateToAllLights({ on: isOn }); res.json({ ok: true }) } catch (e:any) { res.status(500).json({ error: e.message }) } })
+  app.post('/api/rooms/:roomId/toggle', async (req, res) => {
+    try {
+      const { roomId } = req.params as any;
+      const isOn = !!req.body?.isOn;
+      const ids = await hueBridge.getRoomLightIds(roomId);
+      await Promise.all(ids.map((id: string) => hueBridge.setLightState(id, { on: isOn })));
+      res.json({ ok: true, ids });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  })
 
   // Scenes (compat)
   app.get('/api/scenes/current', async (_req, res) => { res.json({ current: null }) })
