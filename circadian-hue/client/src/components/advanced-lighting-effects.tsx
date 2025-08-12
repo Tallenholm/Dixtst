@@ -9,11 +9,11 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Zap, 
-  Waves, 
-  RotateCw, 
-  Heart, 
+import {
+  Zap,
+  Waves,
+  RotateCw,
+  Heart,
   Rainbow,
   Flame,
   Snowflake,
@@ -24,6 +24,13 @@ import {
   Square
 } from "lucide-react";
 
+interface EffectSettings {
+  speed: number;
+  intensity: number;
+  duration?: number;
+  colors?: string[];
+}
+
 interface LightingEffect {
   id: string;
   name: string;
@@ -31,11 +38,7 @@ interface LightingEffect {
   icon: string;
   category: 'ambient' | 'dynamic' | 'therapeutic' | 'entertainment';
   duration?: number;
-  settings: {
-    speed: number;
-    intensity: number;
-    colors: string[];
-  };
+  settings: EffectSettings & { colors: string[] };
 }
 
 const LIGHTING_EFFECTS: LightingEffect[] = [
@@ -127,15 +130,15 @@ const getCategoryColor = (category: string) => {
 export default function AdvancedLightingEffects() {
   const { toast } = useToast();
   const [activeEffect, setActiveEffect] = useState<string | null>(null);
-  const [effectSettings, setEffectSettings] = useState({
-    speed: [5],
-    intensity: [80],
-    duration: [300]
+  const [effectSettings, setEffectSettings] = useState<EffectSettings>({
+    speed: 5,
+    intensity: 80,
+    duration: 5,
   });
   const [isCustomMode, setIsCustomMode] = useState(false);
 
   const startEffectMutation = useMutation({
-    mutationFn: async ({ effectId, settings }: { effectId: string; settings: any }) => {
+    mutationFn: async ({ effectId, settings }: { effectId: string; settings: EffectSettings }) => {
       return apiRequest('/api/effects/start', 'POST', { effectId, settings });
     },
     onSuccess: (_, { effectId }) => {
@@ -164,10 +167,10 @@ export default function AdvancedLightingEffects() {
   });
 
   const handleStartEffect = (effect: LightingEffect) => {
-    const settings = isCustomMode ? {
-      speed: effectSettings.speed[0],
-      intensity: effectSettings.intensity[0],
-      duration: effectSettings.duration[0] * 60, // Convert to seconds
+    const settings: EffectSettings = isCustomMode ? {
+      speed: effectSettings.speed,
+      intensity: effectSettings.intensity,
+      duration: effectSettings.duration ? effectSettings.duration * 60 : undefined,
       colors: effect.settings.colors
     } : effect.settings;
 
@@ -290,11 +293,11 @@ export default function AdvancedLightingEffects() {
                 <div className="space-y-4 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
                   <div className="space-y-2">
                     <Label className="text-sm text-gray-300">
-                      Speed: {effectSettings.speed[0]}/10
+                      Speed: {effectSettings.speed}/10
                     </Label>
                     <Slider
-                      value={effectSettings.speed}
-                      onValueChange={(value) => setEffectSettings(prev => ({ ...prev, speed: value }))}
+                      value={[effectSettings.speed]}
+                      onValueChange={(value) => setEffectSettings(prev => ({ ...prev, speed: value[0] }))}
                       max={10}
                       min={1}
                       step={1}
@@ -304,11 +307,11 @@ export default function AdvancedLightingEffects() {
 
                   <div className="space-y-2">
                     <Label className="text-sm text-gray-300">
-                      Intensity: {effectSettings.intensity[0]}%
+                      Intensity: {effectSettings.intensity}%
                     </Label>
                     <Slider
-                      value={effectSettings.intensity}
-                      onValueChange={(value) => setEffectSettings(prev => ({ ...prev, intensity: value }))}
+                      value={[effectSettings.intensity]}
+                      onValueChange={(value) => setEffectSettings(prev => ({ ...prev, intensity: value[0] }))}
                       max={100}
                       min={10}
                       step={5}
@@ -318,11 +321,11 @@ export default function AdvancedLightingEffects() {
 
                   <div className="space-y-2">
                     <Label className="text-sm text-gray-300">
-                      Duration: {effectSettings.duration[0]} minutes
+                      Duration: {effectSettings.duration ?? 0} minutes
                     </Label>
                     <Slider
-                      value={effectSettings.duration}
-                      onValueChange={(value) => setEffectSettings(prev => ({ ...prev, duration: value }))}
+                      value={[effectSettings.duration ?? 0]}
+                      onValueChange={(value) => setEffectSettings(prev => ({ ...prev, duration: value[0] }))}
                       max={60}
                       min={1}
                       step={1}
