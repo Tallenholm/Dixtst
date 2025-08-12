@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Bridge } from '../../../shared/types';
 
 import { theme } from '../theme/colors';
 import { useApi, apiRequest } from '../context/ApiContext';
@@ -44,7 +45,7 @@ export default function DashboardScreen({ navigation }: any) {
   });
 
   // Fetch bridges
-  const { data: bridges = [], isLoading: bridgesLoading } = useQuery({
+  const { data: bridges = [], isLoading: bridgesLoading } = useQuery<Bridge[]>({
     queryKey: ['bridges'],
     queryFn: () => apiRequest('/api/bridges', {}, baseUrl),
   });
@@ -60,7 +61,7 @@ export default function DashboardScreen({ navigation }: any) {
     ]);
   };
 
-  const connectedBridges = bridges.filter((bridge: any) => bridge.isConnected);
+  const connectedBridges = bridges.filter((bridge: Bridge) => bridge.isConnected);
   const activeLights = lights.filter((light: any) => light.isOn);
 
   return (
