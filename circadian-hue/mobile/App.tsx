@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import Constants from 'expo-constants';
 
 // Simple demo version for testing without external dependencies
 export default function App() {
+  const serverUrl = Constants.expoConfig?.extra?.serverUrl || 'http://localhost:5000';
   const handleConnect = () => {
-    Alert.alert('Connection', 'This would connect to your Circadian Hue server at http://localhost:5000');
+    Alert.alert('Connection', `This would connect to your Circadian Hue server at ${serverUrl}`);
   };
 
   return (
@@ -16,7 +18,7 @@ export default function App() {
       
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Connection</Text>
-        <Text style={styles.connectionText}>Server: http://localhost:5000</Text>
+        <Text style={styles.connectionText}>Server: {serverUrl}</Text>
         <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
           <Text style={styles.buttonText}>Test Connection</Text>
         </TouchableOpacity>
@@ -151,3 +153,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
