@@ -1,6 +1,7 @@
 import { v3 } from 'node-hue-api';
 import logger from '../logger';
 import type { Bridge } from '@shared/schema';
+import type { IStorage } from './storage';
 
 /**
  * Configuration options for the circadian engine. The engine is intentionally
@@ -23,16 +24,16 @@ export interface EngineConfig {
  * bridges at runtime.
  */
 export class CircadianEngine {
-  private storage: any;
+  private storage: IStorage;
   private config: Required<EngineConfig>;
   private bridges: Bridge[] = [];
   private timer?: NodeJS.Timeout;
   private running = false;
   private lastState?: { brightness: number; colorTemp: number };
 
-  constructor(storage: any, config: EngineConfig = {}) {
+  constructor(storage: IStorage, config: EngineConfig = {}) {
     // The concrete storage implementation isn't important for this kata; in the
-    // real project it would conform to an `IStorage` interface capable of
+    // real project it conforms to an `IStorage` interface capable of
     // listing bridges and persisting settings.
     this.storage = storage;
     this.config = {
@@ -40,15 +41,11 @@ export class CircadianEngine {
       transitionTime: config.transitionTime ?? 4 // 4 deciseconds = 400ms
     };
 
-    // If the provided storage exposes a `getAllBridges` method we eagerly load
-    // them so the engine can start operating immediately. This is a best effort
-    // and failure is ignored – tests may provide a very small mock that does not
-    // implement this helper.
-    if (this.storage?.getAllBridges) {
-      this.storage.getAllBridges().then((bs: Bridge[]) => {
-        this.bridges = bs;
-      }).catch(() => {});
-    }
+    // Eagerly load bridges so the engine can start operating immediately.
+    // This is a best effort and failure is ignored.
+    this.storage.getAllBridges().then((bs) => {
+      this.bridges = bs;
+    }).catch(() => {});
   }
 
   /** Start the periodic update loop. */
