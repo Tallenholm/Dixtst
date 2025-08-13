@@ -10,12 +10,17 @@ cd mobile
 npm install
 ```
 
-2. Start the development server:
+2. (Optional) Configure the server URL:
+```bash
+export SERVER_URL="http://192.168.1.100:5000"
+```
+
+3. Start the development server:
 ```bash
 npm start
 ```
 
-3. Run on Android:
+4. Run on Android:
 ```bash
 npm run android
 ```
@@ -38,6 +43,7 @@ npm run android
 
 ## API Connection
 
-The mobile app connects to your Circadian Hue server running on your local network. Configure the server URL in the connection screen when first launching the app.
+The mobile app connects to your Circadian Hue server running on your local network. Set the base URL via the `SERVER_URL` environment variable before starting the app.
 
 Default development URL: `http://localhost:5000`
+

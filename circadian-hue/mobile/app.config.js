@@ -28,6 +28,11 @@ export default {
     },
     plugins: [
       // Removed expo-location plugin to avoid errors
-    ]
-  }
+    ],
+    extra: {
+      serverUrl: process.env.SERVER_URL || "http://localhost:5000",
+    },
+  },
 };
+
+
