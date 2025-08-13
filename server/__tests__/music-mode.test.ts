@@ -1,7 +1,5 @@
-import { test, mock } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-
-mock.module('pino', () => () => ({ info() {}, warn() {}, error() {}, debug() {} }));
 
 const { MusicMode } = await import('../../circadian-hue/server/services/music-mode.ts');
 

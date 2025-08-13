@@ -1,8 +1,10 @@
-import { test, mock } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { v3 } from '../services/hue-bridge/hue-api.ts';
 
-mock.module('pino', () => () => ({ info() {}, warn() {}, error() {}, debug() {} }));
-mock.module('node-hue-api', { v3: { api: {}, discovery: {}, lightStates: {} } });
+v3.api = {} as any;
+v3.discovery = {} as any;
+v3.lightStates = {} as any;
 
 const InMemoryStorage = (await import('../storage.ts')).default;
 const { CircadianEngine } = await import('../services/circadian-engine.ts');

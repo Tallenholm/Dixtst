@@ -1,4 +1,4 @@
-import { v3 } from 'node-hue-api';
+import { v3 } from './hue-bridge/hue-api.ts';
 import logger from '../logger';
 import type { Bridge } from '@shared/schema';
 
