@@ -105,7 +105,7 @@ export class HueBridgeService {
       } else {
         logger.error('Unexpected non-error during pairing', err);
       }
-      return false;
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 
