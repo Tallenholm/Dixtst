@@ -1,5 +1,5 @@
 import { v3 } from 'node-hue-api';
-import type { Bridge, InsertBridge, WSMessage, Light } from '@shared/schema';
+import type { Bridge, WSMessage, Light } from '@shared/schema';
 import type { IStorage } from '../storage';
 import logger from '../logger';
 
@@ -56,8 +56,8 @@ export class HueBridgeService {
           id,
           ip,
           username: '',
-          isConnected: false
-        } as InsertBridge);
+          isConnected: false,
+        });
         bridges.push(newBridge);
       }
     }
@@ -114,7 +114,7 @@ export class HueBridgeService {
     const unauth = await v3.api.createLocal(ip).connect();
     try {
       const user = await unauth.users.createUser(appName, deviceName);
-      await this.storage.insertBridge({ id: ip, ip, username: user.username, isConnected: true } as InsertBridge);
+      await this.storage.insertBridge({ id: ip, ip, username: user.username, isConnected: true });
       return { ip, username: user.username };
     } catch (e: any) {
       if (isHueApiError(e) && e.getHueErrorType() === 101) {

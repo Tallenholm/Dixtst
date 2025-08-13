@@ -1,5 +1,15 @@
 import { randomUUID } from 'crypto';
-import type { Bridge, InsertBridge, Light } from '@shared/schema';
+import type { Bridge, Light } from '@shared/schema';
+
+export interface InsertBridge {
+  ip: string;
+  username: string;
+  id?: string;
+  name?: string;
+  apiVersion?: string;
+  isConnected?: boolean;
+  lastSeen?: Date;
+}
 
 /**
  * Simple in-memory storage used for tests and development. The real project
@@ -29,13 +39,13 @@ class InMemoryStorage implements IStorage {
 
   async insertBridge(bridge: InsertBridge): Promise<Bridge> {
     const record: Bridge = {
-      id: (bridge as any).id ?? randomUUID(),
-      name: (bridge as any).name ?? '',
+      id: bridge.id ?? randomUUID(),
+      name: bridge.name ?? '',
       ip: bridge.ip,
       username: bridge.username,
-      apiVersion: (bridge as any).apiVersion,
-      isConnected: (bridge as any).isConnected ?? false,
-      lastSeen: (bridge as any).lastSeen,
+      apiVersion: bridge.apiVersion,
+      isConnected: bridge.isConnected ?? false,
+      lastSeen: bridge.lastSeen,
     };
     this.bridges.set(record.id, record);
     return record;
