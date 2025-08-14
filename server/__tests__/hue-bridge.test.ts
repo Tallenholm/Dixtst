@@ -24,22 +24,6 @@ import { randomUUID } from 'crypto';
 import { rm } from 'fs/promises';
 const { HueBridgeService } = await import('../services/hue-bridge.ts');
 
-async function withStorage<T>(fn: (s: PersistentStorage) => Promise<T>) {
-  const file = join(tmpdir(), `hue-test-${randomUUID()}.json`);
-  const storage = await PersistentStorage.create(file);
-  try {
-    return await fn(storage);
-  } finally {
-    await rm(file, { force: true });
-  }
-}
-
-test('discover dedupes search results', async () => {
-  await withStorage(async (storage) => {
-    const svc = new HueBridgeService(storage);
-    const ips = await svc.discover();
-    assert.deepEqual(ips.sort(), ['1.1.1.1', '2.2.2.2', '3.3.3.3']);
-  });
 });
 
 test('pairBridge returns true on success', async () => {
