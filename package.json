@@ -8,7 +8,8 @@
     "dev": "cd circadian-hue && npm run dev",
     "build": "cd circadian-hue && npm run build",
     "preview": "cd circadian-hue && npm run preview",
-    "test": "tsx --test server/__tests__/*.ts circadian-hue/mobile/test-mobile.js"
+    "test": "tsx --test server/__tests__/*.ts circadian-hue/mobile/test-mobile.js",
+    "setup-env": "node scripts/setup-env.js"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5",

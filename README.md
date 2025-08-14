@@ -12,6 +12,16 @@ For an in-depth overview of the repository structure and development workflow, s
 npm install
 ```
 
+### Configure Environment
+
+Generate a `.env` file from the example template:
+
+```bash
+npm run setup-env
+```
+
+Follow the prompt to set your `DATABASE_URL` or accept the default.
+
 ### Development
 
 Common tasks are exposed through npm scripts:
