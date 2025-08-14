@@ -2,6 +2,7 @@ import { v3 } from 'node-hue-api';
 import logger from '../logger';
 import type { Bridge } from '@shared/schema';
 import type { IStorage } from './storage';
+import { HueBridgeService } from './hue-bridge';
 
 /**
  * Configuration options for the circadian engine. The engine is intentionally
@@ -40,19 +41,27 @@ export class CircadianEngine {
       updateIntervalMs: config.updateIntervalMs ?? 60_000, // default: 1 minute
       transitionTime: config.transitionTime ?? 4 // 4 deciseconds = 400ms
     };
-
-    // Eagerly load bridges so the engine can start operating immediately.
-    // This is a best effort and failure is ignored.
-    this.storage.getAllBridges().then((bs) => {
-      this.bridges = bs;
-    }).catch(() => {});
   }
 
   /** Start the periodic update loop. */
-  start(): void {
+  async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
-    this.tick();
+
+    try {
+      this.bridges = await this.storage.getAllBridges();
+    } catch (err) {
+      logger.error('Failed to load bridges from storage', err);
+      try {
+        const service = new HueBridgeService(this.storage);
+        this.bridges = await service.discoverBridges();
+      } catch (discoverErr) {
+        logger.error('Bridge discovery failed', discoverErr);
+        this.bridges = [];
+      }
+    }
+
+    await this.tick();
     this.scheduleNext();
   }
 
