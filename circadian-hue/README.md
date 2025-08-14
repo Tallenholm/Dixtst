@@ -119,6 +119,8 @@ Quick access to preset lighting modes:
 ./scripts/build.sh
 ```
 
+This script compiles the web client and server. The mobile app is built separately using Expo—see [`mobile/README.md`](mobile/README.md) for instructions.
+
 ### API Documentation
 
 Key endpoints:
@@ -132,10 +134,11 @@ Key endpoints:
 
 ### Deployment
 
-1. Build the application:
+1. Build the web client and server:
    ```bash
    npm run build
    ```
+   (Mobile builds are handled separately; see [`mobile/README.md`](mobile/README.md).)
 2. Set production environment variables
 3. Start the server:
    ```bash
