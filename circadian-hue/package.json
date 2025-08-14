@@ -6,11 +6,10 @@
   "scripts": {
     "dev:client": "cd client && npm run dev",
     "dev:server": "cd server && npm run dev",
-    "dev:mobile": "cd mobile && npm run dev",
+    "dev:mobile": "cd mobile && npm start",
     "dev": "npm-run-all --parallel dev:*",
-    "build:client": "cd client && npm run build",
-    "build:server": "cd server && npm run build",
-    "build:mobile": "cd mobile && npm run build",
+    "build:client": "vite build",
+    "build:server": "tsc -p tsconfig.server.json",
     "build": "npm-run-all build:*",
     "preview": "vite preview"
   },

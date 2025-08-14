@@ -4,5 +4,3 @@ echo "Building client..."
 npm run build:client
 echo "Building server..."
 npm run build:server
-echo "Packaging mobile..."
-npm run build:mobile
