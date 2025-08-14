@@ -21,10 +21,20 @@ import PersistentStorage from '../persistent-storage.ts';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
-import { rm } from 'fs/promises';
+import { rm, mkdir } from 'fs/promises';
 const { HueBridgeService } = await import('../services/hue-bridge.ts');
 
-});
+async function withStorage(run: (storage: PersistentStorage) => Promise<void>) {
+  const dir = join(tmpdir(), randomUUID());
+  await mkdir(dir, { recursive: true });
+  const file = join(dir, 'db.json');
+  const storage = await PersistentStorage.create(file);
+  try {
+    await run(storage);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
 
 test('pairBridge returns true on success', async () => {
   await withStorage(async (storage) => {
