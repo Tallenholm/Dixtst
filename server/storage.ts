@@ -68,3 +68,4 @@ class InMemoryStorage implements IStorage {
 
 export { InMemoryStorage };
 export default InMemoryStorage;
+export { PersistentStorage } from './persistent-storage';
