@@ -1,6 +1,24 @@
 # Dixtst
 
-This repository has removed platform-specific configuration and now uses a simple Node.js test suite with CI.
+Monorepo for the **Circadian Hue** smart lighting system. It contains a web client, React Native mobile app, and Node.js services for controlling Philips Hue lights.
+
+For an in-depth overview of the repository structure and development workflow, see the [detailed documentation](docs/DETAILED_DOCS.md).
+
+## Quick Start
+
+### Install Dependencies
+
+```bash
+npm install
+```
+
+### Development
+
+Common tasks are exposed through npm scripts:
+
+- `npm run dev` – start the web client and backend in development mode
+- `npm run build` – build the project for production
+- `npm run preview` – serve the production build locally
 
 ## Testing
 
@@ -9,6 +27,8 @@ Run the tests locally with:
 ```bash
 npm test
 ```
+
+This executes the unit tests under `server/__tests__` and a simple mobile check.
 
 ## Mobile App
 
@@ -20,4 +40,4 @@ export SERVER_URL="http://localhost:5000"
 npm start
 ```
 
-
+More detailed instructions are available in [`circadian-hue/mobile/README.md`](circadian-hue/mobile/README.md).
