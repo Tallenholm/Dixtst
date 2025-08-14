@@ -20,6 +20,16 @@ Common tasks are exposed through npm scripts:
 - `npm run build` – build the project for production
 - `npm run preview` – serve the production build locally
 
+### Docker Compose
+
+The repository includes a `docker-compose.yml` for running the server alongside a PostgreSQL database.
+
+```bash
+docker compose up
+```
+
+This command builds the server container and starts a PostgreSQL service. The server's `DATABASE_URL` environment variable is preconfigured to point at the bundled database, so the app is available on <http://localhost:3000> with no additional setup.
+
 ## Testing
 
 Run the tests locally with:
