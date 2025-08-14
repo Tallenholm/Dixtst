@@ -17,45 +17,63 @@ mock.method(hueApi.v3.discovery, 'nupnpSearch', nupnp);
 mock.method(hueApi.v3.discovery, 'upnpSearch', upnp);
 mock.method(hueApi.v3.api, 'createLocal', () => ({ connect: async () => ({ users: { createUser } }) }));
 
-import InMemoryStorage from '../storage.ts';
+import PersistentStorage from '../persistent-storage.ts';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { randomUUID } from 'crypto';
+import { rm } from 'fs/promises';
 const { HueBridgeService } = await import('../services/hue-bridge.ts');
 
+async function withStorage<T>(fn: (s: PersistentStorage) => Promise<T>) {
+  const file = join(tmpdir(), `hue-test-${randomUUID()}.json`);
+  const storage = await PersistentStorage.create(file);
+  try {
+    return await fn(storage);
+  } finally {
+    await rm(file, { force: true });
+  }
+}
+
 test('discover dedupes search results', async () => {
-  const storage = new InMemoryStorage();
-  const svc = new HueBridgeService(storage);
-  const ips = await svc.discover();
-  assert.deepEqual(ips.sort(), ['1.1.1.1', '2.2.2.2', '3.3.3.3']);
+  await withStorage(async (storage) => {
+    const svc = new HueBridgeService(storage);
+    const ips = await svc.discover();
+    assert.deepEqual(ips.sort(), ['1.1.1.1', '2.2.2.2', '3.3.3.3']);
+  });
 });
 
 test('pairBridge returns true on success', async () => {
-  const storage = new InMemoryStorage();
-  const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
-  const svc = new HueBridgeService(storage);
-  createUser.mock.resetCalls();
-  createUser.mock.mockImplementation(async () => ({ username: 'user123' }));
-  const result = await svc.pairBridge(bridge);
-  assert.equal(result, true);
-  const updated = await storage.getBridgeById('1');
-  assert.equal(updated?.username, 'user123');
+  await withStorage(async (storage) => {
+    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
+    const svc = new HueBridgeService(storage);
+    createUser.mock.resetCalls();
+    createUser.mock.mockImplementation(async () => ({ username: 'user123' }));
+    const result = await svc.pairBridge(bridge);
+    assert.equal(result, true);
+    const updated = await storage.getBridgeById('1');
+    assert.equal(updated?.username, 'user123');
+  });
 });
 
 test('pairBridge throws when link button not pressed', async () => {
-  const storage = new InMemoryStorage();
-  const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
-  const svc = new HueBridgeService(storage);
-  const err = new Error('link button');
-  (err as any).getHueErrorType = () => 101;
-  createUser.mock.resetCalls();
-  createUser.mock.mockImplementation(async () => { throw err; });
-  await assert.rejects(() => svc.pairBridge(bridge), /Please press the Hue Bridge link button/);
+  await withStorage(async (storage) => {
+    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
+    const svc = new HueBridgeService(storage);
+    const err = new Error('link button');
+    (err as any).getHueErrorType = () => 101;
+    createUser.mock.resetCalls();
+    createUser.mock.mockImplementation(async () => { throw err; });
+    await assert.rejects(() => svc.pairBridge(bridge), /Please press the Hue Bridge link button/);
+  });
 });
 
 test('pairBridge rethrows unexpected errors', async () => {
-  const storage = new InMemoryStorage();
-  const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
-  const svc = new HueBridgeService(storage);
-  const err = new Error('boom');
-  createUser.mock.resetCalls();
-  createUser.mock.mockImplementation(async () => { throw err; });
-  await assert.rejects(() => svc.pairBridge(bridge), err);
+  await withStorage(async (storage) => {
+    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
+    const svc = new HueBridgeService(storage);
+    const err = new Error('boom');
+    createUser.mock.resetCalls();
+    createUser.mock.mockImplementation(async () => { throw err; });
+    await assert.rejects(() => svc.pairBridge(bridge), err);
+  });
 });
