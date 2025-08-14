@@ -1,4 +1,5 @@
 import { v3 } from 'node-hue-api';
+import SunCalc from 'suncalc';
 import logger from '../logger';
 import type { Bridge } from '@shared/schema';
 import type { IStorage } from './storage';
@@ -15,6 +16,10 @@ export interface EngineConfig {
   updateIntervalMs?: number;
   /** Transition time used when issuing commands to the bridge (in deciseconds). */
   transitionTime?: number;
+  /** Latitude for sunrise/sunset calculations. */
+  latitude?: number;
+  /** Longitude for sunrise/sunset calculations. */
+  longitude?: number;
 }
 
 /**
@@ -38,7 +43,9 @@ export class CircadianEngine {
     this.storage = storage;
     this.config = {
       updateIntervalMs: config.updateIntervalMs ?? 60_000, // default: 1 minute
-      transitionTime: config.transitionTime ?? 4 // 4 deciseconds = 400ms
+      transitionTime: config.transitionTime ?? 4, // 4 deciseconds = 400ms
+      latitude: config.latitude ?? 0,
+      longitude: config.longitude ?? 0
     };
 
     // Eagerly load bridges so the engine can start operating immediately.
@@ -105,23 +112,18 @@ export class CircadianEngine {
    * hook for more sophisticated circadian calculations in the future.
    */
   private computeTargetState(date: Date): { brightness: number; colorTemp: number; transitionTime: number } {
-    const hour = date.getHours() + date.getMinutes() / 60;
-    let brightness: number;
-    let colorTemp: number;
+    const { latitude, longitude } = this.config;
+    const { altitude } = SunCalc.getPosition(date, latitude, longitude);
+    const elevation = altitude * 180 / Math.PI; // convert to degrees
 
-    if (hour >= 6 && hour < 18) {
-      // Daytime – bright and relatively cool
-      brightness = 254;
-      colorTemp = 250; // ~4000K
-    } else if (hour >= 18 && hour < 22) {
-      // Evening – slightly dimmer and warmer
-      brightness = 200;
-      colorTemp = 350; // ~2850K
-    } else {
-      // Night time – dim and very warm
-      brightness = 120;
-      colorTemp = 450; // ~2220K
-    }
+    // Map elevation to brightness and color temperature ranges.
+    const minElevation = -6; // civil twilight end
+    const maxElevation = 60; // clamp to typical max sun elevation
+    const clamped = Math.min(Math.max(elevation, minElevation), maxElevation);
+
+    const scale = (clamped - minElevation) / (maxElevation - minElevation);
+    const brightness = 120 + scale * (254 - 120);
+    const colorTemp = 450 - scale * (450 - 250);
 
     return {
       brightness,
