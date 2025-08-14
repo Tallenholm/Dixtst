@@ -24,26 +24,34 @@ export class HueBridgeService {
    */
   async discoverBridges(): Promise<Bridge[]> {
     logger.info('Starting Hue Bridge discovery');
-    let candidates: Record<string, string> = {};
+    const candidates = new Map<string, string>();
 
-    try {
-      const cloud = await v3.discovery.nupnpSearch();
-      logger.info('N-UPnP results', { count: cloud.length });
-      cloud.forEach(b => { candidates[b.id] = b.internalipaddress; });
-    } catch (err) {
-      logger.warn('N-UPnP discovery failed', err);
-    }
+    const nupnpPromise = (async () => {
+      const start = Date.now();
+      try {
+        const cloud = await v3.discovery.nupnpSearch();
+        logger.info('N-UPnP results', { count: cloud.length, latencyMs: Date.now() - start });
+        cloud.forEach(b => candidates.set(b.id, b.internalipaddress));
+      } catch (err) {
+        logger.warn('N-UPnP discovery failed', err);
+      }
+    })();
 
-    try {
-      const local = await v3.discovery.upnpSearch();
-      logger.info('UPnP results', { count: local.length });
-      local.forEach(b => { candidates[b.id] = b.internalipaddress; });
-    } catch (err) {
-      logger.warn('UPnP discovery failed', err);
-    }
+    const upnpPromise = (async () => {
+      const start = Date.now();
+      try {
+        const local = await v3.discovery.upnpSearch();
+        logger.info('UPnP results', { count: local.length, latencyMs: Date.now() - start });
+        local.forEach(b => candidates.set(b.id, b.internalipaddress));
+      } catch (err) {
+        logger.warn('UPnP discovery failed', err);
+      }
+    })();
+
+    await Promise.all([nupnpPromise, upnpPromise]);
 
     const bridges: Bridge[] = [];
-    for (const [id, ip] of Object.entries(candidates)) {
+    for (const [id, ip] of candidates.entries()) {
       let existing = await this.storage.getBridgeById(id);
       if (existing) {
         existing.ip = ip;

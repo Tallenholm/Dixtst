@@ -20,11 +20,13 @@ mock.method(hueApi.v3.api, 'createLocal', () => ({ connect: async () => ({ users
 import InMemoryStorage from '../storage.ts';
 const { HueBridgeService } = await import('../services/hue-bridge.ts');
 
-test('discover dedupes search results', async () => {
+test('discoverBridges dedupes search results', async () => {
   const storage = new InMemoryStorage();
   const svc = new HueBridgeService(storage);
-  const ips = await svc.discover();
-  assert.deepEqual(ips.sort(), ['1.1.1.1', '2.2.2.2', '3.3.3.3']);
+  const bridges = await svc.discoverBridges();
+  const ips = bridges.map(b => b.ip).sort();
+  assert.deepEqual(ips, ['1.1.1.1', '2.2.2.2', '3.3.3.3']);
+  assert.equal(new Set(bridges.map(b => b.id)).size, bridges.length);
 });
 
 test('pairBridge returns true on success', async () => {
