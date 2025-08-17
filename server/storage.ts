@@ -25,6 +25,18 @@ export interface IStorage {
   upsertLight(light: Light): Promise<Light>;
 }
 
+export function normalizeBridge(bridge: InsertBridge): Bridge {
+  return {
+    id: bridge.id ?? randomUUID(),
+    name: bridge.name ?? '',
+    ip: bridge.ip,
+    username: bridge.username,
+    apiVersion: bridge.apiVersion,
+    isConnected: bridge.isConnected ?? false,
+    lastSeen: bridge.lastSeen,
+  };
+}
+
 class InMemoryStorage implements IStorage {
   private bridges = new Map<string, Bridge>();
   private lights = new Map<string, Light>();
@@ -38,15 +50,7 @@ class InMemoryStorage implements IStorage {
   }
 
   async insertBridge(bridge: InsertBridge): Promise<Bridge> {
-    const record: Bridge = {
-      id: bridge.id ?? randomUUID(),
-      name: bridge.name ?? '',
-      ip: bridge.ip,
-      username: bridge.username,
-      apiVersion: bridge.apiVersion,
-      isConnected: bridge.isConnected ?? false,
-      lastSeen: bridge.lastSeen,
-    };
+    const record = normalizeBridge(bridge);
     this.bridges.set(record.id, record);
     return record;
   }
