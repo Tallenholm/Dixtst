@@ -1,9 +1,9 @@
-import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import type { Bridge, Light } from '@shared/schema';
 import type { InsertBridge, IStorage } from './storage';
+import { normalizeBridge } from './storage';
 
 interface Data {
   bridges: Bridge[];
@@ -39,15 +39,7 @@ export class PersistentStorage implements IStorage {
   }
 
   async insertBridge(bridge: InsertBridge): Promise<Bridge> {
-    const record: Bridge = {
-      id: bridge.id ?? randomUUID(),
-      name: bridge.name ?? '',
-      ip: bridge.ip,
-      username: bridge.username,
-      apiVersion: bridge.apiVersion,
-      isConnected: bridge.isConnected ?? false,
-      lastSeen: bridge.lastSeen,
-    };
+    const record = normalizeBridge(bridge);
     this.db.data!.bridges.push(record);
     await this.write();
     return record;
