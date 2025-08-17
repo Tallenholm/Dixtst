@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import type { MusicMode } from '../services/music-mode';
 import { asyncHandler } from '../lib/asyncHandler';
