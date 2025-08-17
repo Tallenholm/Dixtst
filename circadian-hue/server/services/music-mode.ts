@@ -22,6 +22,9 @@ export class MusicMode {
     const s = this.rooms.get(roomId) || { enabled:false, sensitivity:1 }
     s.enabled = true
     s.sensitivity = Math.max(0.2, Math.min(3, sensitivity))
+    s.lastBri = undefined
+    s.lastCt = undefined
+    s.lastAt = undefined
     this.rooms.set(roomId, s)
     return s
   }
@@ -29,6 +32,9 @@ export class MusicMode {
   stop(roomId: string) {
     const s = this.rooms.get(roomId) || { enabled:false, sensitivity:1 }
     s.enabled = false
+    s.lastBri = undefined
+    s.lastCt = undefined
+    s.lastAt = undefined
     this.rooms.set(roomId, s)
     return s
   }
