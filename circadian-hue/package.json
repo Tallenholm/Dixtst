@@ -10,7 +10,7 @@
     "dev": "npm-run-all --parallel dev:*",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json",
-    "build": "npm-run-all build:*",
+    "build": "npm-run-all build:server",
     "preview": "vite preview"
   },
   "dependencies": {

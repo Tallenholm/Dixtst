@@ -1,6 +1,6 @@
 import type { IStorage } from "../storage"
 import { HueBridgeService } from "./hue-bridge"
-import logger from '../../../server/logger'
+const logger = { warn: (...args: any[]) => console.warn(...args) }
 
 type RoomState = {
   enabled: boolean
@@ -58,9 +58,9 @@ export class MusicMode {
 
     try {
       const ids = await this.hue.getRoomLightIds(roomId)
-      await Promise.all(ids.map(id => this.hue.setLightState(id, { on: true, bri: sbri, ct: sct })))
+      await Promise.all(ids.map((id: string) => this.hue.setLightState(id, { on: true, bri: sbri, ct: sct })))
     } catch (err) {
-      logger.warn('Failed to apply state to lights', err)
+      logger.warn('Failed to apply state to lights', err as any)
     }
   }
 }
