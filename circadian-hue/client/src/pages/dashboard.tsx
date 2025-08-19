@@ -14,6 +14,13 @@ import EnhancedStatusBar from "@/components/enhanced-status-bar";
 import NotificationCenter from "@/components/notification-center";
 import AdvancedLightingEffects from "@/components/advanced-lighting-effects";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { Settings, Sun, Zap } from "lucide-react";
 import { Link } from "wouter";
 
@@ -38,19 +45,31 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm">
-                <div className={`w-2 h-2 rounded-full animate-pulse ${
-                  connectionStatus === 'connected' ? 'bg-green-400' : 
-                  connectionStatus === 'connecting' ? 'bg-yellow-400' : 'bg-red-400'
-                }`}></div>
-                <span className={
-                  connectionStatus === 'connected' ? 'text-green-400' : 
-                  connectionStatus === 'connecting' ? 'text-yellow-400' : 'text-red-400'
-                }>
-                  {connectionStatus === 'connected' ? 'Bridge Connected' : 
-                   connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
-                </span>
-              </div>
+              <Badge
+                variant="outline"
+                className={`flex items-center gap-2 text-sm px-2 py-1 ${
+                  connectionStatus === 'connected'
+                    ? 'text-green-400 border-green-400'
+                    : connectionStatus === 'connecting'
+                    ? 'text-yellow-400 border-yellow-400'
+                    : 'text-red-400 border-red-400'
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full animate-pulse ${
+                    connectionStatus === 'connected'
+                      ? 'bg-green-400'
+                      : connectionStatus === 'connecting'
+                      ? 'bg-yellow-400'
+                      : 'bg-red-400'
+                  }`}
+                />
+                {connectionStatus === 'connected'
+                  ? 'Bridge Connected'
+                  : connectionStatus === 'connecting'
+                  ? 'Connecting...'
+                  : 'Disconnected'}
+              </Badge>
               <Link href="/settings">
                 <Button variant="ghost" size="sm" className="p-2 rounded-lg hover:bg-white/10 transition-colors">
                   <Settings className="text-[--warm-gray]" size={20} />
@@ -89,9 +108,22 @@ export default function Dashboard() {
 
       {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6 z-50">
-        <button className="w-14 h-14 bg-gradient-to-r from-[--circadian-amber] to-orange-500 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group hover:scale-110">
-          <Zap className="text-white group-hover:rotate-12 transition-transform" size={20} />
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                aria-label="Quick action"
+                className="w-14 h-14 bg-gradient-to-r from-[--circadian-amber] to-orange-500 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group hover:scale-110"
+              >
+                <Zap
+                  className="text-white group-hover:rotate-12 transition-transform"
+                  size={20}
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Quick Action</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
