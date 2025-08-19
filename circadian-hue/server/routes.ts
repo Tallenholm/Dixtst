@@ -108,13 +108,50 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
   // System status & location (compat)
   app.get('/api/system/status', asyncHandler(async (_req, res) => { res.json({ engine: true, updates: true, schedule: true, lastUpdate: new Date().toISOString() }) }))
   app.get('/api/location', asyncHandler(async (_req, res) => {
-    const loc = await storage.getSetting<{lat:number;lng:number}>('location')
-    res.json(loc?.value || { lat: 41.8781, lng: -87.6298 })
+    const loc = await storage.getSetting<{ latitude:number; longitude:number; city?:string; country?:string }>('location')
+    if (!loc) return res.status(404).json({ error: 'location_not_set' })
+    res.json(loc.value)
+  }))
+  app.post('/api/location', asyncHandler(async (req, res) => {
+    const { latitude, longitude, city, country } = req.body || {}
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') return res.status(400).json({ error: 'latitude and longitude required' })
+    const value = { latitude, longitude, city, country }
+    await storage.setSetting('location', value)
+    res.json(value)
   }))
   app.post('/api/location/detect', asyncHandler(async (_req, res) => {
-    const value = { lat:41.8781, lng:-87.6298 }
+    const r = await fetch('https://ipapi.co/json')
+    const data = await r.json()
+    const value = { latitude: data.latitude, longitude: data.longitude, city: data.city, country: data.country_name }
     await storage.setSetting('location', value)
-    res.json({ value })
+    res.json(value)
+  }))
+
+  app.get('/api/analytics', asyncHandler(async (_req, res) => {
+    const loc = await storage.getSetting<{ latitude:number; longitude:number }>('location')
+    let phaseDistribution: { phase:string; hours:number; percentage:number }[] = []
+    if (loc) {
+      const sun = getSunTimes(loc.value.latitude, loc.value.longitude)
+      const sunrise = new Date(sun.sunrise)
+      const sunset = new Date(sun.sunset)
+      const dayHours = (sunset.getTime() - sunrise.getTime()) / 36e5
+      const sunriseHours = 1
+      const eveningHours = 1
+      const day = Math.max(dayHours - sunriseHours - eveningHours, 0)
+      const night = Math.max(24 - day - sunriseHours - eveningHours, 0)
+      phaseDistribution = [
+        { phase: 'Night', hours: night, percentage: Math.round((night/24)*100) },
+        { phase: 'Sunrise', hours: sunriseHours, percentage: Math.round((sunriseHours/24)*100) },
+        { phase: 'Day', hours: day, percentage: Math.round((day/24)*100) },
+        { phase: 'Evening', hours: eveningHours, percentage: Math.round((eveningHours/24)*100) },
+      ]
+    }
+    res.json({
+      todayUsage: { totalHours: 0, circadianHours: 0, manualOverrides: 0, energySaved: 0 },
+      weeklyTrends: [],
+      phaseDistribution,
+      healthMetrics: { circadianScore: 0, sleepScheduleConsistency: 0, lightExposureBalance: 0, wellnessIndex: 0 },
+    })
   }))
 
   // Schedules (compat shell)
@@ -129,13 +166,39 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
     if (Number.isNaN(lat) || Number.isNaN(lng)) return res.status(400).json({ error: 'lat and lng required' })
     res.json({ phase: getCurrentPhase(lat, lng) })
   }))
-  app.get('/api/schedule', asyncHandler(async (_req, res) => { res.json({ schedules: [] }) }))
+  app.get('/api/schedule', asyncHandler(async (_req, res) => {
+    const sc = await storage.getSetting<any[]>('schedule')
+    res.json({ schedules: sc?.value || [] })
+  }))
+  app.post('/api/schedule', asyncHandler(async (req, res) => {
+    const schedules = req.body?.schedules
+    if (!Array.isArray(schedules)) return res.status(400).json({ error: 'schedules array required' })
+    await storage.setSetting('schedule', schedules)
+    res.json({ schedules })
+  }))
+  app.patch('/api/schedule/:id', asyncHandler(async (req, res) => {
+    const id = req.params.id
+    const existing = (await storage.getSetting<any[]>('schedule'))?.value || []
+    const idx = existing.findIndex((s: any) => s.id === id)
+    if (idx === -1) return res.status(404).json({ error: 'schedule_not_found' })
+    existing[idx] = { ...existing[idx], ...req.body }
+    await storage.setSetting('schedule', existing)
+    res.json(existing[idx])
+  }))
 
   // Effects (compat shell)
   app.post('/api/lights/sleep-mode', asyncHandler(async (_req, res) => { await hueBridge.applyStateToAllLights({ on:true, bri:40, ct:430 }); res.json({ ok:true }) }))
   app.post('/api/lights/wake-up', asyncHandler(async (_req, res) => { await hueBridge.applyStateToAllLights({ on:true, bri:200, ct:220 }); res.json({ ok:true }) }))
-  app.post('/api/effects/start', asyncHandler(async (_req, res) => { res.json({ ok: true }) }))
-  app.post('/api/effects/stop', asyncHandler(async (_req, res) => { res.json({ ok: true }) }))
+  app.post('/api/effects/start', asyncHandler(async (req, res) => {
+    const { effectId, settings } = req.body || {}
+    if (!effectId) return res.status(400).json({ error: 'effectId required' })
+    await hueBridge.startEffect(effectId, settings || { speed:5, intensity:80 })
+    res.json({ ok: true })
+  }))
+  app.post('/api/effects/stop', asyncHandler(async (_req, res) => {
+    await hueBridge.stopEffect()
+    res.json({ ok: true })
+  }))
 
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     if (err instanceof ZodError) return res.status(400).json({ error: err.message })

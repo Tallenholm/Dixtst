@@ -75,38 +75,23 @@ export default function AnalyticsInsights() {
     );
   }
 
-  // Mock data for demonstration since backend might not be implemented yet
-  const mockAnalytics: AnalyticsData = {
-    todayUsage: {
-      totalHours: 14,
-      circadianHours: 12,
-      manualOverrides: 3,
-      energySaved: 18
-    },
-    weeklyTrends: [
-      { day: 'Mon', circadianCompliance: 85, sleepQuality: 78, overrides: 2 },
-      { day: 'Tue', circadianCompliance: 92, sleepQuality: 83, overrides: 1 },
-      { day: 'Wed', circadianCompliance: 78, sleepQuality: 75, overrides: 4 },
-      { day: 'Thu', circadianCompliance: 88, sleepQuality: 80, overrides: 2 },
-      { day: 'Fri', circadianCompliance: 94, sleepQuality: 85, overrides: 1 },
-      { day: 'Sat', circadianCompliance: 76, sleepQuality: 72, overrides: 5 },
-      { day: 'Sun', circadianCompliance: 89, sleepQuality: 81, overrides: 2 }
-    ],
-    phaseDistribution: [
-      { phase: 'Night', hours: 8, percentage: 33 },
-      { phase: 'Sunrise', hours: 2, percentage: 8 },
-      { phase: 'Day', hours: 10, percentage: 42 },
-      { phase: 'Evening', hours: 4, percentage: 17 }
-    ],
-    healthMetrics: {
-      circadianScore: 87,
-      sleepScheduleConsistency: 82,
-      lightExposureBalance: 91,
-      wellnessIndex: 85
-    }
-  };
+  if (!analytics) {
+    return (
+      <Card className="bg-gray-900/50 border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center space-x-2">
+            <BarChart3 className="h-5 w-5 text-green-400" />
+            <span>Analytics & Insights</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-gray-400">No analytics data available.</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  const data = analytics || mockAnalytics;
+  const data = analytics;
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
