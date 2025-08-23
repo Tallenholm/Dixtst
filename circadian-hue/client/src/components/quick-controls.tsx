@@ -4,12 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Sun, Flame, Moon, Power } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/state/hooks";
+import { setManualOverride } from "@/state/userSettingsSlice";
+import VibeDice from "./VibeDice";
+import MusicControl from "./MusicControl";
+import SleepControls from "./SleepControls";
 
 export default function QuickControls() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [manualOverride, setManualOverride] = useState(false);
+  const dispatch = useAppDispatch();
+  const manualOverride = useAppSelector((state) => state.userSettings.manualOverride);
 
   const presetMutation = useMutation({
     mutationFn: async (preset: string) => {
@@ -74,9 +79,9 @@ export default function QuickControls() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <span className="font-medium">Manual Override</span>
-          <Switch 
-            checked={manualOverride} 
-            onCheckedChange={setManualOverride}
+          <Switch
+            checked={manualOverride}
+            onCheckedChange={(v) => dispatch(setManualOverride(v))}
           />
         </div>
         <p className="text-xs text-[--warm-gray]">Temporarily disable automatic adjustments</p>
