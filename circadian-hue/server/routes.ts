@@ -14,7 +14,8 @@ import { createSleepRouter } from './routes/sleep'
 import { asyncHandler } from './lib/asyncHandler'
 import { z, ZodError } from 'zod'
 
-const LOCATION_DETECT_URL = process.env.IPAPI_ENDPOINT || 'https://ipapi.co/json'
+const LOCATION_DETECT_URL = process.env.IPAPI_ENDPOINT
+if (!LOCATION_DETECT_URL) throw new Error('IPAPI_ENDPOINT is required')
 const LOCATION_DETECT_TIMEOUT_MS = 5000
 
 export async function registerRoutes(app: ReturnType<typeof express>) {

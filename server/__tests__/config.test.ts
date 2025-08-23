@@ -8,11 +8,10 @@ async function importConfig() {
   return import(`${CONFIG_PATH}?t=${Date.now()}-${Math.random()}`);
 }
 
-test('uses default DATABASE_URL when env var not set', async () => {
+test('throws when DATABASE_URL is not set', async () => {
   const original = process.env.DATABASE_URL;
   delete process.env.DATABASE_URL;
-  const mod = await importConfig();
-  assert.equal(mod.DATABASE_URL, 'postgres://localhost:5432/postgres');
+  await assert.rejects(() => importConfig());
   if (original !== undefined) process.env.DATABASE_URL = original; else delete process.env.DATABASE_URL;
 });
 

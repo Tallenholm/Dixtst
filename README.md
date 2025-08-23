@@ -14,13 +14,22 @@ npm install
 
 ### Configure Environment
 
-Generate a `.env` file from the example template:
+Generate a `.env` file from the example template and fill in the required values:
 
 ```bash
-npm run setup-env
+cp .env.example .env
 ```
 
-Follow the prompt to set your `DATABASE_URL` or accept the default.
+Set the following variables in `.env`:
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/circadian_hue
+PORT=3000
+JWT_SECRET=change-me
+IPAPI_ENDPOINT=https://ipapi.co/json
+```
+
+`DATABASE_URL`, `PORT`, `JWT_SECRET`, and `IPAPI_ENDPOINT` must be defined for the server to start.
 
 ### Development
 
@@ -38,7 +47,7 @@ The repository includes a `docker-compose.yml` for running the server alongside 
 docker compose up
 ```
 
-This command builds the server container and starts a PostgreSQL service. The server's `DATABASE_URL` environment variable is preconfigured to point at the bundled database, so the app is available on <http://localhost:3000> with no additional setup.
+This command builds the server container and starts a PostgreSQL service. Environment variables from your `.env` file are loaded into the server container, so ensure the required values are configured before starting. The app will be available on `http://localhost:$PORT`.
 
 ## Testing
 
