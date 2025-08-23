@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
 import BridgeSetup from "@/pages/bridge-setup";
 import NotFound from "@/pages/not-found";
+import { StateProvider } from "@/state";
 
 function Router() {
   return (
@@ -22,14 +23,16 @@ function Router() {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <StateProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </StateProvider>
   );
 }
 

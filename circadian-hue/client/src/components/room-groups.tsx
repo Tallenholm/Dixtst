@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { fetchJson } from "@/lib/api";
@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Home, Plus, Edit3, Lightbulb, Users, MoreVertical } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/state/hooks";
+import { setRooms } from "@/state/roomsSlice";
 
 interface Light {
   id: string;
@@ -32,6 +34,8 @@ interface Room {
 
 export default function RoomGroups() {
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
+  const rooms = useAppSelector((state) => state.rooms.list);
   const [newRoomName, setNewRoomName] = useState("");
   const [selectedLights, setSelectedLights] = useState<string[]>([]);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
@@ -40,9 +44,15 @@ export default function RoomGroups() {
     queryKey: ['/api/lights'],
   });
 
-  const { data: rooms } = useQuery<Room[]>({
+  const { data: roomsData } = useQuery<Room[]>({
     queryKey: ['/api/rooms'],
   });
+
+  useEffect(() => {
+    if (roomsData) {
+      dispatch(setRooms(roomsData));
+    }
+  }, [roomsData, dispatch]);
 
   const createRoomMutation = useMutation({
     mutationFn: async () => {
