@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -139,7 +140,10 @@ export default function AdvancedLightingEffects() {
 
   const startEffectMutation = useMutation({
     mutationFn: async ({ effectId, settings }: { effectId: string; settings: EffectSettings }) => {
-      return apiRequest('/api/effects/start', 'POST', { effectId, settings });
+      return fetchJson('/api/effects/start', {
+        method: 'POST',
+        body: { effectId, settings },
+      });
     },
     onSuccess: (_, { effectId }) => {
       setActiveEffect(effectId);
@@ -154,7 +158,10 @@ export default function AdvancedLightingEffects() {
 
   const stopEffectMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/effects/stop', 'POST', {});
+      return fetchJson('/api/effects/stop', {
+        method: 'POST',
+        body: {},
+      });
     },
     onSuccess: () => {
       setActiveEffect(null);

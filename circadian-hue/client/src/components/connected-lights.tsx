@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Lightbulb, Plus } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,10 @@ export default function ConnectedLights() {
 
   const updateLightMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Light> }) => {
-      const response = await apiRequest('POST', `/api/lights/${id}/update`, updates);
-      return response.json();
+      return fetchJson(`/api/lights/${id}/update`, {
+        method: 'POST',
+        body: updates,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/lights'] });

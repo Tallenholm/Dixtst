@@ -1,17 +1,26 @@
-export async function musicStart(roomId: string, sensitivity=1){ 
-  const res = await fetch(`/api/rooms/${roomId}/music/start`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ sensitivity }) })
-  if(!res.ok) throw new Error(await res.text())
-  return res.json()
+import { fetchJson } from "./api";
+
+export async function musicStart(roomId: string, sensitivity = 1) {
+  return fetchJson(`/api/rooms/${roomId}/music/start`, {
+    method: "POST",
+    body: { sensitivity },
+  });
 }
-export async function musicStop(roomId: string){ 
-  const res = await fetch(`/api/rooms/${roomId}/music/stop`, { method:'POST' })
-  if(!res.ok) throw new Error(await res.text())
-  return res.json()
+
+export async function musicStop(roomId: string) {
+  return fetchJson(`/api/rooms/${roomId}/music/stop`, { method: "POST" });
 }
-export async function musicTelemetry(roomId: string, energy:number, tempo?:number){
-  const res = await fetch(`/api/music/telemetry`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId, energy, tempo }) })
-  if(!res.ok) throw new Error(await res.text())
-  return true
+
+export async function musicTelemetry(
+  roomId: string,
+  energy: number,
+  tempo?: number,
+) {
+  await fetchJson(`/api/music/telemetry`, {
+    method: "POST",
+    body: { roomId, energy, tempo },
+  });
+  return true;
 }
 
 // WebAudio energy helper

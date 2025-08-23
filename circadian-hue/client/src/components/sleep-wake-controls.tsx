@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,10 @@ export default function SleepWakeControls() {
 
   const sleepMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/lights/sleep-mode', 'POST', { duration: sleepDuration[0] });
+      return fetchJson('/api/lights/sleep-mode', {
+        method: 'POST',
+        body: { duration: sleepDuration[0] },
+      });
     },
     onSuccess: () => {
       toast({
@@ -33,7 +36,10 @@ export default function SleepWakeControls() {
 
   const wakeUpMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/lights/wake-up', 'POST', { duration: wakeUpDuration[0] });
+      return fetchJson('/api/lights/wake-up', {
+        method: 'POST',
+        body: { duration: wakeUpDuration[0] },
+      });
     },
     onSuccess: () => {
       toast({
@@ -45,17 +51,20 @@ export default function SleepWakeControls() {
 
   const saveScheduleMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/sleep-wake-schedule', 'POST', {
-        wakeUp: {
-          enabled: wakeUpEnabled,
-          time: wakeUpTime,
-          duration: wakeUpDuration[0]
+      return fetchJson('/api/sleep-wake-schedule', {
+        method: 'POST',
+        body: {
+          wakeUp: {
+            enabled: wakeUpEnabled,
+            time: wakeUpTime,
+            duration: wakeUpDuration[0],
+          },
+          sleep: {
+            enabled: sleepEnabled,
+            time: sleepTime,
+            duration: sleepDuration[0],
+          },
         },
-        sleep: {
-          enabled: sleepEnabled,
-          time: sleepTime,
-          duration: sleepDuration[0]
-        }
       });
     },
     onSuccess: () => {

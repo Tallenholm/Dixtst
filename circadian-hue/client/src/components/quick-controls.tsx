@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Sun, Flame, Moon, Power } from "lucide-react";
@@ -13,8 +13,7 @@ export default function QuickControls() {
 
   const presetMutation = useMutation({
     mutationFn: async (preset: string) => {
-      const response = await apiRequest('POST', `/api/lights/preset/${preset}`);
-      return response.json();
+      return fetchJson(`/api/lights/preset/${preset}`, { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/lights'] });

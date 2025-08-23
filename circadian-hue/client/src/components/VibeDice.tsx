@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
+import { fetchJson } from '@/lib/api'
 
 export default function VibeDice({ roomId }: { roomId?: string }){
   const [loading, setLoading] = React.useState(false)
@@ -7,8 +8,10 @@ export default function VibeDice({ roomId }: { roomId?: string }){
   const roll = async ()=>{
     setLoading(true)
     try{
-      const res = await fetch('/api/vibe/dice', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roomId }) })
-      const j = await res.json()
+      const j = await fetchJson('/api/vibe/dice', {
+        method: 'POST',
+        body: { roomId },
+      })
       setLast(j.applied)
     } finally {
       setLoading(false)

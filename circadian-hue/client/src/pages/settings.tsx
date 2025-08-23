@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,13 +53,10 @@ export default function Settings() {
 
   const updateScheduleMutation = useMutation({
     mutationFn: async (updates: Partial<Schedule>) => {
-      const response = await fetch(`/api/schedule/${schedule?.id}`, {
+      return fetchJson(`/api/schedule/${schedule?.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: updates,
       });
-      if (!response.ok) throw new Error('Failed to update schedule');
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedule'] });
@@ -78,13 +76,10 @@ export default function Settings() {
 
   const updateLocationMutation = useMutation({
     mutationFn: async (locationData: { city: string; country: string }) => {
-      const response = await fetch('/api/location', {
+      return fetchJson('/api/location', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(locationData),
+        body: locationData,
       });
-      if (!response.ok) throw new Error('Failed to update location');
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/location'] });
@@ -104,11 +99,7 @@ export default function Settings() {
 
   const detectLocationMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/location/detect', {
-        method: 'POST',
-      });
-      if (!response.ok) throw new Error('Failed to detect location');
-      return response.json();
+      return fetchJson('/api/location/detect', { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/location'] });

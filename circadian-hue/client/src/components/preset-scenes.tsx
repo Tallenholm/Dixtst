@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -140,11 +141,14 @@ export default function PresetScenes() {
 
   const applySceneMutation = useMutation({
     mutationFn: async (scene: PresetScene) => {
-      return apiRequest('/api/scenes/apply', 'POST', {
-        sceneId: scene.id,
-        brightness: scene.brightness,
-        colorTemp: scene.colorTemp,
-        color: scene.color
+      return fetchJson('/api/scenes/apply', {
+        method: 'POST',
+        body: {
+          sceneId: scene.id,
+          brightness: scene.brightness,
+          colorTemp: scene.colorTemp,
+          color: scene.color,
+        },
       });
     },
     onSuccess: (_, scene) => {
