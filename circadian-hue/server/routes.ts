@@ -14,6 +14,9 @@ import { createSleepRouter } from './routes/sleep'
 import { asyncHandler } from './lib/asyncHandler'
 import { z, ZodError } from 'zod'
 
+const LOCATION_DETECT_URL = process.env.IPAPI_ENDPOINT || 'https://ipapi.co/json'
+const LOCATION_DETECT_TIMEOUT_MS = 5000
+
 export async function registerRoutes(app: ReturnType<typeof express>) {
   const server = http.createServer(app)
   const wss = new WebSocketServer({ server })
@@ -122,13 +125,22 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
     await storage.setSetting('location', value)
     res.json(value)
   }))
-  app.post('/api/location/detect', asyncHandler(async (_req, res) => {
-    const r = await fetch('https://ipapi.co/json')
-    const data = await r.json()
-    const value = { latitude: data.latitude, longitude: data.longitude, city: data.city, country: data.country_name }
-    await storage.setSetting('location', value)
-    res.json(value)
-  }))
+    app.post('/api/location/detect', asyncHandler(async (_req, res) => {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), LOCATION_DETECT_TIMEOUT_MS)
+      try {
+        const r = await fetch(LOCATION_DETECT_URL, { signal: controller.signal })
+        const data = await r.json()
+        const value = { latitude: data.latitude, longitude: data.longitude, city: data.city, country: data.country_name }
+        await storage.setSetting('location', value)
+        res.json(value)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e)
+        res.status(503).json({ error: 'location_service_unavailable', message })
+      } finally {
+        clearTimeout(timeout)
+      }
+    }))
 
   app.get('/api/analytics', asyncHandler(async (_req, res) => {
     const loc = await storage.getSetting<{ latitude:number; longitude:number }>('location')
