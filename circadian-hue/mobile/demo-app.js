@@ -1,20 +1,32 @@
 // Simple demo version without external dependencies
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import fetchWithAuth from './src/services/api';
 
 const DemoApp = () => {
+  const [status, setStatus] = useState({ engine: false, updates: false, schedule: false });
+
+  useEffect(() => {
+    fetchWithAuth('https://localhost:5000/api/system/status', { certs: ['apiCert'] })
+      .then(res => res.json())
+      .then(data => setStatus(data))
+      .catch(() => {
+        // ignore errors in demo environment
+      });
+  }, []);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Circadian Hue Mobile</Text>
         <Text style={styles.subtitle}>Smart Lighting Control</Text>
       </View>
-      
+
       <View style={styles.card}>
         <Text style={styles.cardTitle}>System Status</Text>
-        <Text style={styles.status}>🟢 Engine: Running</Text>
-        <Text style={styles.status}>🟢 Updates: Active</Text>
-        <Text style={styles.status}>🟢 Schedule: Active</Text>
+        <Text style={styles.status}>{status.engine ? '🟢' : '🔴'} Engine: {status.engine ? 'Running' : 'Stopped'}</Text>
+        <Text style={styles.status}>{status.updates ? '🟢' : '🔴'} Updates: {status.updates ? 'Active' : 'Inactive'}</Text>
+        <Text style={styles.status}>{status.schedule ? '🟢' : '🔴'} Schedule: {status.schedule ? 'Active' : 'Inactive'}</Text>
       </View>
       
       <View style={styles.card}>
