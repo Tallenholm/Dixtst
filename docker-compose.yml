@@ -18,9 +18,14 @@ services:
     command: sh -c "npm install && npx tsx circadian-hue/server/index.ts"
     depends_on:
       - postgres
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/circadian_hue
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: ${PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      IPAPI_ENDPOINT: ${IPAPI_ENDPOINT}
     ports:
-      - "3000:3000"
+      - "${PORT}:${PORT}"
 volumes:
   pgdata:

@@ -16,7 +16,8 @@ app.use(authMiddleware)
 
 registerRoutes(app)
   .then((server) => {
-    const port = parseInt(process.env.PORT || '3000', 10)
+    const port = parseInt(process.env.PORT ?? '', 10)
+    if (!port) throw new Error('PORT is required')
     server.listen(port, () => console.log('Server on', port))
   })
   .catch((error) => {
