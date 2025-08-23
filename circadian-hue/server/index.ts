@@ -2,9 +2,18 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
+import { authMiddleware } from './lib/auth'
 import { registerRoutes } from './routes'
+
 const app = express()
 app.use(express.json()); app.use(cors()); app.use(helmet())
+
+const limiter = rateLimit({ windowMs: 60 * 1000, max: 60 })
+app.use(limiter)
+
+app.use(authMiddleware)
+
 registerRoutes(app)
   .then((server) => {
     const port = parseInt(process.env.PORT || '3000', 10)
