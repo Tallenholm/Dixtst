@@ -12,7 +12,7 @@ import { createMusicRouter } from './routes/music'
 import { createVibeRouter } from './routes/vibe'
 import { createSleepRouter } from './routes/sleep'
 import { asyncHandler } from './lib/asyncHandler'
-import { ZodError } from 'zod'
+import { z, ZodError } from 'zod'
 
 export async function registerRoutes(app: ReturnType<typeof express>) {
   const server = http.createServer(app)
@@ -37,22 +37,21 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
   }))
   app.post('/api/rooms/:roomId/scene/apply', asyncHandler(async (req, res) => {
     const { roomId } = req.params as any
-    const sceneId = req.body?.sceneId
-    if (!sceneId) return res.status(400).json({ error: 'sceneId required' })
+    const { sceneId } = z.object({ sceneId: z.string() }).parse(req.body)
     await hueBridge.applySceneToGroup(roomId, sceneId)
     res.json({ ok: true })
   }))
 
+  const coordsSchema = z.object({ lat: z.coerce.number(), lng: z.coerce.number() })
+
   // Sun aliases
   app.get('/api/sun-times', (req, res) => {
-    const lat = parseFloat(String(req.query.lat)); const lng = parseFloat(String(req.query.lng))
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return res.status(400).json({ error: 'lat and lng required' })
+    const { lat, lng } = coordsSchema.parse(req.query)
     const t = getSunTimes(lat, lng)
     res.json(t)
   })
   app.get('/api/current-phase', (req, res) => {
-    const lat = parseFloat(String(req.query.lat)); const lng = parseFloat(String(req.query.lng))
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return res.status(400).json({ error: 'lat and lng required' })
+    const { lat, lng } = coordsSchema.parse(req.query)
     res.json({ phase: getCurrentPhase(lat, lng) })
   })
 
@@ -112,10 +111,14 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
     if (!loc) return res.status(404).json({ error: 'location_not_set' })
     res.json(loc.value)
   }))
+  const locationSchema = z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+  })
   app.post('/api/location', asyncHandler(async (req, res) => {
-    const { latitude, longitude, city, country } = req.body || {}
-    if (typeof latitude !== 'number' || typeof longitude !== 'number') return res.status(400).json({ error: 'latitude and longitude required' })
-    const value = { latitude, longitude, city, country }
+    const value = locationSchema.parse(req.body || {})
     await storage.setSetting('location', value)
     res.json(value)
   }))
@@ -156,14 +159,12 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
 
   // Schedules (compat shell)
   app.get('/api/schedule/sun-times', asyncHandler(async (req, res) => {
-    const lat = parseFloat(String(req.query.lat)); const lng = parseFloat(String(req.query.lng))
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return res.status(400).json({ error: 'lat and lng required' })
+    const { lat, lng } = coordsSchema.parse(req.query)
     const t = getSunTimes(lat, lng)
     res.json(t)
   }))
   app.get('/api/schedule/current-phase', asyncHandler(async (req, res) => {
-    const lat = parseFloat(String(req.query.lat)); const lng = parseFloat(String(req.query.lng))
-    if (Number.isNaN(lat) || Number.isNaN(lng)) return res.status(400).json({ error: 'lat and lng required' })
+    const { lat, lng } = coordsSchema.parse(req.query)
     res.json({ phase: getCurrentPhase(lat, lng) })
   }))
   app.get('/api/schedule', asyncHandler(async (_req, res) => {
