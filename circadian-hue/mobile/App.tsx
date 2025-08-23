@@ -1,10 +1,62 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import Constants from 'expo-constants';
+import * as TaskManager from 'expo-task-manager';
+import * as BackgroundFetch from 'expo-background-fetch';
+import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const FETCH_SCHEDULE_TASK = 'FETCH_SCHEDULE_TASK';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+TaskManager.defineTask(FETCH_SCHEDULE_TASK, async () => {
+  try {
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: { title: 'Circadian Hue', body: 'Updating schedule...' },
+      trigger: null,
+    });
+
+    const serverUrl =
+      Constants.expoConfig?.extra?.serverUrl || 'http://localhost:5000';
+    const response = await fetch(`${serverUrl}/api/schedule`);
+    const data = await response.json();
+    await AsyncStorage.setItem('schedule', JSON.stringify(data));
+
+    await Notifications.dismissNotificationAsync(notificationId);
+    return BackgroundFetch.Result.NewData;
+  } catch (error) {
+    return BackgroundFetch.Result.Failed;
+  }
+});
 
 // Simple demo version for testing without external dependencies
 export default function App() {
   const serverUrl = Constants.expoConfig?.extra?.serverUrl || 'http://localhost:5000';
+
+  useEffect(() => {
+    const registerBackgroundTask = async () => {
+      await Notifications.requestPermissionsAsync();
+      const isRegistered = await TaskManager.isTaskRegisteredAsync(
+        FETCH_SCHEDULE_TASK
+      );
+      if (!isRegistered) {
+        await BackgroundFetch.registerTaskAsync(FETCH_SCHEDULE_TASK, {
+          minimumInterval: 15 * 60,
+          stopOnTerminate: false,
+          startOnBoot: true,
+        });
+      }
+    };
+    registerBackgroundTask();
+  }, []);
+
   const handleConnect = () => {
     Alert.alert('Connection', `This would connect to your Circadian Hue server at ${serverUrl}`);
   };
