@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -30,9 +31,7 @@ export default function BridgeSetup() {
 
   const discoverMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/bridges/discover', {
-        method: 'POST',
-      });
+      return fetchJson('/api/bridges/discover', { method: 'POST' });
     },
     onSuccess: () => {
       refetchBridges();
@@ -52,9 +51,7 @@ export default function BridgeSetup() {
 
   const pairMutation = useMutation({
     mutationFn: async (bridgeId: string) => {
-      return apiRequest(`/api/bridges/${bridgeId}/pair`, {
-        method: 'POST',
-      });
+      return fetchJson(`/api/bridges/${bridgeId}/pair`, { method: 'POST' });
     },
     onSuccess: () => {
       setIsPairing(false);

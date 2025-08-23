@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,10 +46,13 @@ export default function RoomGroups() {
 
   const createRoomMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/rooms', 'POST', {
-        name: newRoomName,
-        lights: selectedLights,
-        icon: 'Home'
+      return fetchJson('/api/rooms', {
+        method: 'POST',
+        body: {
+          name: newRoomName,
+          lights: selectedLights,
+          icon: 'Home',
+        },
       });
     },
     onSuccess: () => {
@@ -65,7 +69,10 @@ export default function RoomGroups() {
 
   const toggleRoomMutation = useMutation({
     mutationFn: async ({ roomId, isOn }: { roomId: string; isOn: boolean }) => {
-      return apiRequest(`/api/rooms/${roomId}/toggle`, 'POST', { isOn });
+      return fetchJson(`/api/rooms/${roomId}/toggle`, {
+        method: 'POST',
+        body: { isOn },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/rooms'] });

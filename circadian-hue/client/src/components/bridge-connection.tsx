@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { fetchJson } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Wifi, Search, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -19,8 +19,7 @@ export default function BridgeConnection() {
 
   const discoverMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/bridges/discover');
-      return response.json();
+      return fetchJson('/api/bridges/discover', { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bridges'] });
@@ -40,8 +39,7 @@ export default function BridgeConnection() {
 
   const pairMutation = useMutation({
     mutationFn: async (bridgeId: string) => {
-      const response = await apiRequest('POST', `/api/bridges/${bridgeId}/pair`);
-      return response.json();
+      return fetchJson(`/api/bridges/${bridgeId}/pair`, { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bridges'] });
