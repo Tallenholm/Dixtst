@@ -1,8 +1,20 @@
-import { Pool } from 'pg'
+import { Pool } from 'pg';
+import { dbQueryDuration } from '../lib/metrics';
 
-export const db = new Pool({
+const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
-})
+});
 
-export default db
+const originalQuery = pool.query.bind(pool);
+pool.query = async (...args: any[]) => {
+  const end = dbQueryDuration.startTimer();
+  try {
+    return await originalQuery(...args);
+  } finally {
+    end();
+  }
+};
+
+export const db = pool;
+export default pool;

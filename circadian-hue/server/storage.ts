@@ -1,5 +1,6 @@
 import type { Pool } from 'pg'
 import { db } from './services/db'
+import logger from './lib/logger'
 
 export interface Setting<T> { key: string; value: T; updatedAt: Date }
 
@@ -60,7 +61,7 @@ async function ensureIndexes(db: Pool) {
     await db.query('CREATE INDEX IF NOT EXISTS idx_system_settings_key ON system_settings(key)')
     await db.query('CREATE INDEX IF NOT EXISTS idx_lights_name ON lights(name)')
   } catch (err) {
-    console.error('Failed to ensure indexes', err)
+    logger.error({ err }, 'Failed to ensure indexes')
   }
 }
 
