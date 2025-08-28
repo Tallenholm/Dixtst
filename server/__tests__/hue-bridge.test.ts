@@ -38,8 +38,8 @@ async function withStorage(run: (storage: PersistentStorage) => Promise<void>) {
 
 test('pairBridge returns true on success', async () => {
   await withStorage(async (storage) => {
-    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
-    const svc = new HueBridgeService(storage);
+    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false, householdId: 'home1' } as any);
+    const svc = new HueBridgeService(storage, 'home1');
     createUser.mock.resetCalls();
     createUser.mock.mockImplementation(async () => ({ username: 'user123' }));
     const result = await svc.pairBridge(bridge);
@@ -51,8 +51,8 @@ test('pairBridge returns true on success', async () => {
 
 test('pairBridge throws when link button not pressed', async () => {
   await withStorage(async (storage) => {
-    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
-    const svc = new HueBridgeService(storage);
+    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false, householdId: 'home1' } as any);
+    const svc = new HueBridgeService(storage, 'home1');
     const err = new Error('link button');
     (err as any).getHueErrorType = () => 101;
     createUser.mock.resetCalls();
@@ -63,8 +63,8 @@ test('pairBridge throws when link button not pressed', async () => {
 
 test('pairBridge rethrows unexpected errors', async () => {
   await withStorage(async (storage) => {
-    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false } as any);
-    const svc = new HueBridgeService(storage);
+    const bridge = await storage.insertBridge({ id: '1', ip: '1.1.1.1', username: '', isConnected: false, householdId: 'home1' } as any);
+    const svc = new HueBridgeService(storage, 'home1');
     const err = new Error('boom');
     createUser.mock.resetCalls();
     createUser.mock.mockImplementation(async () => { throw err; });

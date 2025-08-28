@@ -35,6 +35,7 @@ export const bridges = pgTable("bridges", {
   ip: text("ip").notNull(),
   username: text("username").notNull(),
   apiVersion: text("api_version"),
+  householdId: varchar("household_id").references(() => households.id).notNull(),
   isConnected: boolean("is_connected").default(false),
   lastSeen: timestamp("last_seen"),
 });
@@ -99,6 +100,7 @@ export const insertBridgeSchema = createInsertSchema(bridges).pick({
   ip: true,
   username: true,
   apiVersion: true,
+  householdId: true,
 });
 
 export const insertLightSchema = createInsertSchema(lights).pick({

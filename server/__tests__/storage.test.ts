@@ -22,6 +22,7 @@ async function withPersistent(run: (storage: PersistentStorage) => Promise<void>
 const baseBridge: InsertBridge = {
   ip: '1.1.1.1',
   username: 'user',
+  householdId: 'home1',
 };
 
 test('insertBridge applies default fields', async () => {
@@ -48,6 +49,7 @@ test('insertBridge preserves provided values', async () => {
     apiVersion: '1.0',
     isConnected: true,
     lastSeen: new Date('2024-01-01T00:00:00Z'),
+    householdId: 'home1',
   };
   const mem = new InMemoryStorage();
   const expected = await mem.insertBridge(input);

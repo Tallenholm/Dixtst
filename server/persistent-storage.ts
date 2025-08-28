@@ -30,8 +30,9 @@ export class PersistentStorage implements IStorage {
     await this.db.write();
   }
 
-  async getAllBridges(): Promise<Bridge[]> {
-    return this.db.data!.bridges;
+  async getAllBridges(householdId?: string): Promise<Bridge[]> {
+    const bridges = this.db.data!.bridges;
+    return householdId ? bridges.filter(b => b.householdId === householdId) : bridges;
   }
 
   async getBridgeById(id: string): Promise<Bridge | undefined> {

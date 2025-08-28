@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Wifi, Search, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Bridge } from "@shared/types";
+import { useEffect, useState } from "react";
 
 export default function BridgeConnection() {
   const { toast } = useToast();
@@ -12,6 +13,14 @@ export default function BridgeConnection() {
   const { data: bridges = [] } = useQuery<Bridge[]>({
     queryKey: ['/api/bridges'],
   });
+
+  const [selectedBridgeId, setSelectedBridgeId] = useState<string>("");
+
+  useEffect(() => {
+    if (!selectedBridgeId && bridges.length > 0) {
+      setSelectedBridgeId(bridges[0].id);
+    }
+  }, [bridges, selectedBridgeId]);
 
   const { data: lights = [] } = useQuery({
     queryKey: ['/api/lights'],
@@ -98,9 +107,9 @@ export default function BridgeConnection() {
         )}
         
         <div className="flex space-x-2">
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             className="flex-1 bg-gray-700 hover:bg-gray-600"
             onClick={() => discoverMutation.mutate()}
             disabled={discoverMutation.isPending}
@@ -109,16 +118,31 @@ export default function BridgeConnection() {
             Scan
           </Button>
           {bridges.length > 0 && !connectedBridge && (
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              className="flex-1 bg-gray-700 hover:bg-gray-600"
-              onClick={() => pairMutation.mutate(bridges[0].id)}
-              disabled={pairMutation.isPending}
-            >
-              <Link className="mr-1" size={14} />
-              Pair
-            </Button>
+            <>
+              {bridges.length > 1 && (
+                <select
+                  className="flex-1 bg-gray-700 text-white text-sm rounded-md px-2 mr-2"
+                  value={selectedBridgeId}
+                  onChange={(e) => setSelectedBridgeId(e.target.value)}
+                >
+                  {bridges.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1 bg-gray-700 hover:bg-gray-600"
+                onClick={() => selectedBridgeId && pairMutation.mutate(selectedBridgeId)}
+                disabled={pairMutation.isPending || !selectedBridgeId}
+              >
+                <Link className="mr-1" size={14} />
+                Pair
+              </Button>
+            </>
           )}
         </div>
       </div>

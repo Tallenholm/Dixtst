@@ -10,19 +10,26 @@ function isHueApiError(err: unknown): err is Error & { getHueErrorType(): number
 export class HueBridgeService {
   private storage: IStorage;
   private broadcastCallback?: (message: WSMessage) => void;
+  private householdId: string;
+  private activeBridgeId?: string;
 
-  constructor(storage: IStorage) {
+  constructor(storage: IStorage, householdId: string) {
     this.storage = storage;
+    this.householdId = householdId;
   }
 
   setBroadcastCallback(callback: (message: WSMessage) => void) {
     this.broadcastCallback = callback;
   }
 
+  setActiveBridge(bridgeId: string) {
+    this.activeBridgeId = bridgeId;
+  }
+
   /**
    * Discover Hue Bridges via cloud (N-UPnP) and local (UPnP/SSDP).
    */
-  async discoverBridges(): Promise<Bridge[]> {
+  async discoverBridges(vlanIps: string[] = []): Promise<Bridge[]> {
     logger.info('Starting Hue Bridge discovery');
     const candidates = new Map<string, string>();
 
@@ -48,7 +55,23 @@ export class HueBridgeService {
       }
     })();
 
-    await Promise.all([nupnpPromise, upnpPromise]);
+    const manualIps = vlanIps.length > 0
+      ? vlanIps
+      : (process.env.HUE_BRIDGE_VLANS || '').split(',').map(ip => ip.trim()).filter(Boolean);
+
+    const vlanPromise = (async () => {
+      for (const ip of manualIps) {
+        try {
+          const desc = await v3.discovery.description(ip);
+          const id = (desc as any).id || (desc as any).serialNumber || ip;
+          candidates.set(id, ip);
+        } catch (err) {
+          logger.warn('VLAN discovery failed', { ip, err });
+        }
+      }
+    })();
+
+    await Promise.all([nupnpPromise, upnpPromise, vlanPromise]);
 
     const bridges: Bridge[] = [];
     for (const [id, ip] of candidates.entries()) {
@@ -64,6 +87,7 @@ export class HueBridgeService {
           id,
           ip,
           username: '',
+          householdId: this.householdId,
           isConnected: false,
         });
         bridges.push(newBridge);
@@ -122,7 +146,7 @@ export class HueBridgeService {
     const unauth = await v3.api.createLocal(ip).connect();
     try {
       const user = await unauth.users.createUser(appName, deviceName);
-      await this.storage.insertBridge({ id: ip, ip, username: user.username, isConnected: true });
+      await this.storage.insertBridge({ id: ip, ip, username: user.username, isConnected: true, householdId: this.householdId });
       return { ip, username: user.username };
     } catch (e: any) {
       if (isHueApiError(e) && e.getHueErrorType() === 101) {
@@ -132,9 +156,13 @@ export class HueBridgeService {
     }
   }
 
-  private async getApi(): Promise<{ api: any; bridge: Bridge }> {
-    const bridges = await this.storage.getAllBridges();
-    const bridge = bridges[0];
+  private async getApi(bridgeId?: string): Promise<{ api: any; bridge: Bridge }> {
+    const bridges = await this.storage.getAllBridges(this.householdId);
+    const bridge = bridgeId
+      ? bridges.find(b => b.id === bridgeId)
+      : this.activeBridgeId
+        ? bridges.find(b => b.id === this.activeBridgeId)
+        : bridges[0];
     if (!bridge) throw new Error('bridge_not_configured');
     const api = await v3.api.createLocal(bridge.ip).connect(bridge.username);
     return { api, bridge };

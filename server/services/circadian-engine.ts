@@ -60,7 +60,7 @@ export class CircadianEngine {
     } catch (err) {
       logger.error('Failed to load bridges from storage', err);
       try {
-        const service = new HueBridgeService(this.storage);
+        const service = new HueBridgeService(this.storage, 'default');
         this.bridges = await service.discoverBridges();
       } catch (discoverErr) {
         logger.error('Bridge discovery failed', discoverErr);
