@@ -1,6 +1,8 @@
 import { Request, Response } from 'express'
 import type { HueBridgeService } from '../services/hue-bridge'
 import type { Scheduler } from '../services/scheduler'
+import logger from '../lib/logger'
+import { sunriseQueue } from '../services/jobs'
 
 export class SleepController {
   constructor(private readonly hueBridge: HueBridgeService, private readonly scheduler: Scheduler) {}
@@ -31,7 +33,7 @@ export class SleepController {
         errors = 0
       } catch (err) {
         errors++
-        console.error('winddown interval failed', err)
+        logger.error({ err }, 'winddown interval failed')
         if (errors >= 5) this.scheduler.clear(id)
       }
       if (i >= steps) this.scheduler.clear(id)
@@ -44,19 +46,12 @@ export class SleepController {
     res: Response
   ) => {
     const minutes = Math.max(5, Math.min(90, Number(req.body?.minutes ?? 30)))
-    let i = 0
-    const steps = minutes
-    const startBri = 10, endBri = 220
-    const startCt = 430, endCt = 250
-    const id = 'sunrise'
-    this.scheduler.scheduleInterval(id, async () => {
-      i++
-      const t = Math.min(1, i / steps)
-      const bri = Math.round(startBri * (1 - t) + endBri * t)
-      const ct = Math.round(startCt * (1 - t) + endCt * t)
-      try { await this.hueBridge.applyStateToAllLights({ on: true, bri, ct }) } catch {}
-      if (i >= steps) this.scheduler.clear(id)
-    }, 60 * 1000)
-    res.json({ ok: true, minutes })
+    if (sunriseQueue) {
+      await sunriseQueue.add('sunrise', { minutes })
+      res.status(202).json({ ok: true, minutes })
+    } else {
+      logger.warn('sunrise queue not configured')
+      res.status(500).json({ error: 'queue unavailable' })
+    }
   }
 }

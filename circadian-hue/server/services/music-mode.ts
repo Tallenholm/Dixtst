@@ -1,6 +1,6 @@
 import type { IStorage } from "../storage"
 import { HueBridgeService } from "./hue-bridge"
-const logger = { warn: (...args: any[]) => console.warn(...args) }
+import logger from "../lib/logger"
 
 type RoomState = {
   enabled: boolean
