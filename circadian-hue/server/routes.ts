@@ -29,6 +29,7 @@ import { LocationController } from './controllers/location';
 import { AnalyticsController } from './controllers/analytics';
 import { ScheduleController } from './controllers/schedule';
 import { EffectsController } from './controllers/effects';
+import { AnalyticsService } from './services/analytics';
 import logger from './lib/logger';
 import { wsConnections } from './lib/metrics';
 
@@ -46,8 +47,9 @@ export async function registerRoutes(app: ReturnType<typeof express>, httpsOptio
   });
 
   const permissions = new PermissionsRepository(db);
+  const analyticsService = new AnalyticsService(db);
   const roomsController = new RoomsController(
-    new RoomsService(new RoomsRepository(hueBridge), permissions)
+    new RoomsService(new RoomsRepository(hueBridge), permissions, analyticsService)
   );
   const musicController = new MusicController(music);
   const overridesController = new OverridesController(storage);
@@ -57,9 +59,9 @@ export async function registerRoutes(app: ReturnType<typeof express>, httpsOptio
   const bridgesController = new BridgesController(hueBridge);
   const lightsController = new LightsController(hueBridge);
   const locationController = new LocationController(storage);
-  const analyticsController = new AnalyticsController(storage);
-  const scheduleController = new ScheduleController(storage, permissions);
-  const effectsController = new EffectsController(hueBridge);
+  const analyticsController = new AnalyticsController(analyticsService);
+  const scheduleController = new ScheduleController(storage, permissions, analyticsService);
+  const effectsController = new EffectsController(hueBridge, analyticsService);
 
   app.use('/api/overrides', createOverridesRouter(overridesController));
   app.use('/api', createVibeRouter(vibeController));

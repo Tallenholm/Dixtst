@@ -1,8 +1,9 @@
 import { Request, Response } from 'express'
 import type { HueBridgeService } from '../services/hue-bridge'
+import { AnalyticsService } from '../services/analytics'
 
 export class EffectsController {
-  constructor(private readonly hueBridge: HueBridgeService) {}
+  constructor(private readonly hueBridge: HueBridgeService, private readonly analytics: AnalyticsService) {}
 
   sleepMode = async (_req: Request, res: Response) => {
     await this.hueBridge.applyStateToAllLights({ on: true, bri: 40, ct: 430 })
@@ -21,11 +22,13 @@ export class EffectsController {
     const { effectId, settings } = req.body || {}
     if (!effectId) return res.status(400).json({ error: 'effectId required' })
     await this.hueBridge.startEffect(effectId, settings || { speed: 5, intensity: 80 })
+    await this.analytics.recordEvent('effect_start', { effectId, settings })
     res.json({ ok: true })
   }
 
   stop = async (_req: Request, res: Response) => {
     await this.hueBridge.stopEffect()
+    await this.analytics.recordEvent('effect_stop')
     res.json({ ok: true })
   }
 }

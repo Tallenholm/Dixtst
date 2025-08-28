@@ -85,6 +85,13 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const usageEvents = pgTable("usage_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(),
+  details: jsonb("details"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertBridgeSchema = createInsertSchema(bridges).pick({
   name: true,
@@ -121,6 +128,11 @@ export const insertSystemSettingSchema = createInsertSchema(systemSettings).pick
   value: true,
 });
 
+export const insertUsageEventSchema = createInsertSchema(usageEvents).pick({
+  eventType: true,
+  details: true,
+});
+
 export const insertHouseholdSchema = createInsertSchema(households).pick({
   name: true,
 });
@@ -151,6 +163,8 @@ export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type Location = typeof locations.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingSchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertUsageEvent = z.infer<typeof insertUsageEventSchema>;
+export type UsageEvent = typeof usageEvents.$inferSelect;
 export type InsertRoomPermission = z.infer<typeof insertRoomPermissionSchema>;
 export type RoomPermission = typeof roomPermissions.$inferSelect;
 

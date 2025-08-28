@@ -2,11 +2,13 @@ import { Request, Response } from 'express'
 import type { IStorage } from '../storage'
 import { PermissionsRepository } from '../repositories/permissions'
 import { getSunTimes, getCurrentPhase } from '../lib/sun'
+import { AnalyticsService } from '../services/analytics'
 
 export class ScheduleController {
   constructor(
     private readonly storage: IStorage,
     private readonly permissions: PermissionsRepository,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   sunTimes = (req: Request<unknown, unknown, unknown, { lat: string; lng: string }>, res: Response) => {
@@ -19,7 +21,9 @@ export class ScheduleController {
   currentPhase = (req: Request<unknown, unknown, unknown, { lat: string; lng: string }>, res: Response) => {
     const lat = Number(req.query.lat)
     const lng = Number(req.query.lng)
-    res.json({ phase: getCurrentPhase(lat, lng) })
+    const phase = getCurrentPhase(lat, lng)
+    this.analytics.recordEvent('schedule_phase', { phase }).catch(() => {})
+    res.json({ phase })
   }
 
   list = async (_req: Request, res: Response) => {
