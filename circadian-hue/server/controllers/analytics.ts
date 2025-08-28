@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import type { IStorage } from '../storage'
 import { getSunTimes } from '../lib/sun'
+import { AnalyticsSchema } from '../../shared/dto/analytics'
 
 export class AnalyticsController {
   constructor(private readonly storage: IStorage) {}
@@ -24,11 +25,17 @@ export class AnalyticsController {
         { phase: 'Evening', hours: eveningHours, percentage: Math.round((eveningHours / 24) * 100) },
       ]
     }
-    res.json({
+    const data = {
       todayUsage: { totalHours: 0, circadianHours: 0, manualOverrides: 0, energySaved: 0 },
       weeklyTrends: [],
       phaseDistribution,
-      healthMetrics: { circadianScore: 0, sleepScheduleConsistency: 0, lightExposureBalance: 0, wellnessIndex: 0 },
-    })
+      healthMetrics: {
+        circadianScore: 0,
+        sleepScheduleConsistency: 0,
+        lightExposureBalance: 0,
+        wellnessIndex: 0,
+      },
+    }
+    res.json(AnalyticsSchema.parse(data))
   }
 }

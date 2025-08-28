@@ -1,6 +1,12 @@
 import { Request, Response } from 'express'
-import { z } from 'zod'
 import { RoomsService } from '../services/rooms'
+import {
+  ApplySceneRequest,
+  ApplySceneRequestSchema,
+  ToggleRoomRequest,
+  ToggleRoomRequestSchema,
+} from '../../shared/dto/room'
+import { validate } from '../../shared/dto/validate'
 
 export class RoomsController {
   constructor(private readonly service: RoomsService) {}
@@ -16,22 +22,22 @@ export class RoomsController {
   }
 
   applyScene = async (
-    req: Request<{ roomId: string }, any, { sceneId: string }>,
+    req: Request<{ roomId: string }, any, ApplySceneRequest>,
     res: Response
   ) => {
     const { roomId } = req.params
-    const { sceneId } = z.object({ sceneId: z.string() }).parse(req.body)
+    const { sceneId } = validate(ApplySceneRequestSchema, req.body)
     await this.service.applyScene(roomId, sceneId)
     res.json({ ok: true })
   }
 
   toggleRoom = async (
-    req: Request<{ roomId: string }, any, { isOn?: boolean }>,
+    req: Request<{ roomId: string }, any, ToggleRoomRequest>,
     res: Response
   ) => {
     const { roomId } = req.params
-    const isOn = !!req.body?.isOn
-    const ids = await this.service.toggleRoom(roomId, isOn)
+    const { isOn } = validate(ToggleRoomRequestSchema, req.body || {})
+    const ids = await this.service.toggleRoom(roomId, !!isOn)
     res.json({ ok: true, ids })
   }
 }
