@@ -32,6 +32,8 @@ import { EffectsController } from './controllers/effects';
 import { AnalyticsService } from './services/analytics';
 import logger from './lib/logger';
 import { wsConnections } from './lib/metrics';
+import { GoogleCalendarService } from './services/google-calendar';
+import { CalendarController } from './controllers/calendar';
 
 export async function registerRoutes(app: ReturnType<typeof express>, httpsOptions: ServerOptions) {
   const server = https.createServer(httpsOptions, app);
@@ -62,6 +64,8 @@ export async function registerRoutes(app: ReturnType<typeof express>, httpsOptio
   const analyticsController = new AnalyticsController(analyticsService);
   const scheduleController = new ScheduleController(storage, permissions, analyticsService);
   const effectsController = new EffectsController(hueBridge, analyticsService);
+  const calendarService = new GoogleCalendarService(process.env.GOOGLE_API_KEY || '');
+  const calendarController = new CalendarController(calendarService);
 
   app.use('/api/overrides', createOverridesRouter(overridesController));
   app.use('/api', createVibeRouter(vibeController));
@@ -102,6 +106,9 @@ export async function registerRoutes(app: ReturnType<typeof express>, httpsOptio
   app.get('/api/schedule', asyncHandler(scheduleController.list));
   app.post('/api/schedule', authMiddleware, asyncHandler(scheduleController.set));
   app.patch('/api/schedule/:id', authMiddleware, asyncHandler(scheduleController.patch));
+
+  // Calendar integration
+  app.get('/api/calendar/busy', authMiddleware, asyncHandler(calendarController.busy));
 
   // Effects (compat shell)
   app.post('/api/lights/sleep-mode', asyncHandler(effectsController.sleepMode));

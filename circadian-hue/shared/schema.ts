@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   householdId: varchar("household_id").references(() => households.id),
+  sunriseOffset: integer("sunrise_offset").default(0),
 });
 
 export const roomPermissions = pgTable(

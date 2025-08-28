@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
+import { useState } from 'react';
+import { ScheduleEditor } from './schedule-editor';
 
 export default function ScheduleVisualization() {
   const { data: schedule } = useQuery({
     queryKey: ['/api/schedule'],
   });
+
+  const [editing, setEditing] = useState(false);
 
   const phases = [
     { name: 'Sunrise', color: 'orange-400', time: '6:30 - 8:00' },
@@ -18,11 +22,24 @@ export default function ScheduleVisualization() {
     <div className="glassmorphism rounded-2xl p-6 animate-slide-up">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold">Daily Schedule</h3>
-        <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-blue-400 hover:text-blue-300"
+          onClick={() => setEditing(true)}
+        >
           <Edit className="mr-2" size={16} />
           Customize
         </Button>
       </div>
+
+      {editing && (
+        <div className="mb-4">
+          <ScheduleEditor
+            onSave={() => setEditing(false)}
+          />
+        </div>
+      )}
       
       {/* Schedule Graph */}
       <div className="relative h-48 bg-gray-800/50 rounded-xl p-4 mb-4">
