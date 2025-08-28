@@ -153,6 +153,10 @@ Key endpoints:
 - Helmet.js security headers
 - Rate limiting (recommended for production)
 
+### TLS Certificates
+
+Place your HTTPS certificate and key files in `server/certs/` and reference them via the `TLS_CERT_PATH` and `TLS_KEY_PATH` environment variables. The Express server reads these paths on startup to enable TLS.
+
 ## 📊 Performance
 
 - Bundle size optimized with Vite

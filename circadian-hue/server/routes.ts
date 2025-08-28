@@ -1,5 +1,5 @@
 import express from 'express'
-import http from 'http'
+import https, { ServerOptions } from 'https'
 import { WebSocketServer } from 'ws'
 import { storage } from './storage'
 import { HueBridgeService } from './services/hue-bridge'
@@ -30,8 +30,8 @@ import { AnalyticsController } from './controllers/analytics'
 import { ScheduleController } from './controllers/schedule'
 import { EffectsController } from './controllers/effects'
 
-export async function registerRoutes(app: ReturnType<typeof express>) {
-  const server = http.createServer(app)
+export async function registerRoutes(app: ReturnType<typeof express>, httpsOptions: ServerOptions) {
+  const server = https.createServer(httpsOptions, app)
   const wss = new WebSocketServer({ server })
   const hueBridge = new HueBridgeService(storage)
   const music = new MusicMode(storage, hueBridge)
