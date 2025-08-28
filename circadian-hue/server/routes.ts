@@ -10,6 +10,7 @@ import { createMusicRouter } from './routes/music'
 import { createVibeRouter } from './routes/vibe'
 import { createSleepRouter } from './routes/sleep'
 import { asyncHandler } from './lib/asyncHandler'
+import { requireRoomRole } from './lib/roles'
 import { ZodError } from 'zod'
 import { RoomsRepository } from './repositories/rooms'
 import { RoomsService } from './services/rooms'
@@ -56,8 +57,8 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
   // Core for UI
   app.get('/api/rooms', asyncHandler(roomsController.listRooms))
   app.get('/api/scenes', asyncHandler(roomsController.listScenes))
-  app.post('/api/rooms/:roomId/scene/apply', asyncHandler(roomsController.applyScene))
-  app.post('/api/rooms/:roomId/toggle', asyncHandler(roomsController.toggleRoom))
+  app.post('/api/rooms/:roomId/scene/apply', requireRoomRole('roomId'), asyncHandler(roomsController.applyScene))
+  app.post('/api/rooms/:roomId/toggle', requireRoomRole('roomId'), asyncHandler(roomsController.toggleRoom))
 
   // Sun aliases
   app.get('/api/sun-times', sunController.getSunTimes)
