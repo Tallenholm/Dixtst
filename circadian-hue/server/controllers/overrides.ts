@@ -1,7 +1,8 @@
 import { Request, Response } from 'express'
-import { z } from 'zod'
 import type { IStorage } from '../storage'
 import { listOverrides, setRoomOverride, clearRoomOverride } from '../lib/overrides'
+import { OverrideRequest, OverrideRequestSchema } from '../../shared/dto/overrides'
+import { validate } from '../../shared/dto/validate'
 
 export class OverridesController {
   constructor(private readonly storage: IStorage) {}
@@ -12,18 +13,10 @@ export class OverridesController {
   }
 
   set = async (
-    req: Request<{ roomId: string }, any, { on?: boolean; bri?: number; ct?: number; dnd?: boolean; until?: string; sceneId?: string }>,
+    req: Request<{ roomId: string }, any, OverrideRequest>,
     res: Response
   ) => {
-    const bodySchema = z.object({
-      on: z.boolean().optional(),
-      bri: z.number().optional(),
-      ct: z.number().optional(),
-      dnd: z.boolean().optional(),
-      until: z.string().optional(),
-      sceneId: z.string().optional(),
-    })
-    const data = bodySchema.parse(req.body || {})
+    const data = validate(OverrideRequestSchema, req.body || {})
     await setRoomOverride(this.storage, String(req.params.roomId), data)
     res.json({ ok: true })
   }
