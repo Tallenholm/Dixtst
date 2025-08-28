@@ -4,6 +4,7 @@ import type { Bridge, Light } from '@shared/schema';
 export interface InsertBridge {
   ip: string;
   username: string;
+  householdId: string;
   id?: string;
   name?: string;
   apiVersion?: string;
@@ -17,7 +18,7 @@ export interface InsertBridge {
  * operations to satisfy the HueBridgeService.
  */
 export interface IStorage {
-  getAllBridges(): Promise<Bridge[]>;
+  getAllBridges(householdId?: string): Promise<Bridge[]>;
   getBridgeById(id: string): Promise<Bridge | undefined>;
   insertBridge(bridge: InsertBridge): Promise<Bridge>;
   updateBridge(bridge: Bridge): Promise<Bridge>;
@@ -32,6 +33,7 @@ export function normalizeBridge(bridge: InsertBridge): Bridge {
     ip: bridge.ip,
     username: bridge.username,
     apiVersion: bridge.apiVersion,
+    householdId: bridge.householdId,
     isConnected: bridge.isConnected ?? false,
     lastSeen: bridge.lastSeen,
   };
@@ -41,8 +43,9 @@ class InMemoryStorage implements IStorage {
   private bridges = new Map<string, Bridge>();
   private lights = new Map<string, Light>();
 
-  async getAllBridges(): Promise<Bridge[]> {
-    return Array.from(this.bridges.values());
+  async getAllBridges(householdId?: string): Promise<Bridge[]> {
+    const all = Array.from(this.bridges.values());
+    return householdId ? all.filter(b => b.householdId === householdId) : all;
   }
 
   async getBridgeById(id: string): Promise<Bridge | undefined> {

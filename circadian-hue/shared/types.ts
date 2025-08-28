@@ -1,5 +1,6 @@
 export interface Bridge {
   id: string;
+  householdId?: string;
   ip: string;
   name: string;
   isConnected: boolean;
