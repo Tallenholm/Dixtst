@@ -1,12 +1,11 @@
-// @ts-nocheck
-import express from 'express'
+import express, { Express } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { authMiddleware } from './lib/auth'
 import { registerRoutes } from './routes'
 
-const app = express()
+const app: Express = express()
 app.use(express.json()); app.use(cors()); app.use(helmet())
 
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 60 })

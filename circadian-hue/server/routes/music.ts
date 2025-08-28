@@ -1,33 +1,13 @@
-// @ts-nocheck
 import { Router } from 'express';
-import type { MusicMode } from '../services/music-mode';
+import { MusicController } from '../controllers/music';
 import { asyncHandler } from '../lib/asyncHandler';
 
-export function createMusicRouter(music: MusicMode) {
+export function createMusicRouter(controller: MusicController) {
   const router = Router();
 
-  router.post('/rooms/:roomId/music/start', asyncHandler(async (req, res) => {
-    const { roomId } = req.params as any;
-    const sens = Number(req.body?.sensitivity ?? 1.0);
-    const s = music.start(roomId, sens);
-    res.json({ ok: true, state: s });
-  }));
-
-  router.post('/rooms/:roomId/music/stop', asyncHandler(async (req, res) => {
-    const { roomId } = req.params as any;
-    const s = music.stop(roomId);
-    res.json({ ok: true, state: s });
-  }));
-
-  router.post('/music/telemetry', asyncHandler(async (req, res) => {
-    const { roomId, energy, tempo } = req.body || {};
-    if (typeof energy !== 'number' || !roomId) {
-      res.status(400).json({ error: 'roomId and numeric energy required' });
-      return;
-    }
-    await music.telemetry(String(roomId), Number(energy), typeof tempo === 'number' ? tempo : undefined);
-    res.json({ ok: true });
-  }));
+  router.post('/rooms/:roomId/music/start', asyncHandler(controller.start));
+  router.post('/rooms/:roomId/music/stop', asyncHandler(controller.stop));
+  router.post('/music/telemetry', asyncHandler(controller.telemetry));
 
   return router;
 }
