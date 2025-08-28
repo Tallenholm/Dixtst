@@ -21,6 +21,17 @@ export const tokenStore = {
   },
 }
 
+export function getAuthContext(): any | null {
+  const token = tokenStore.get()
+  if (!token) return null
+  try {
+    const payload = atob(token.split('.')[1])
+    return JSON.parse(payload)
+  } catch {
+    return null
+  }
+}
+
 export async function fetchJson<T = any>(
   url: string,
   opts: FetchJsonOptions = {}

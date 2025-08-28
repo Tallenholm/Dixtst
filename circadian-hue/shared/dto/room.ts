@@ -16,5 +16,6 @@ export type ApplySceneRequest = z.infer<typeof ApplySceneRequestSchema>
 
 export const ToggleRoomRequestSchema = z.object({
   isOn: z.boolean().optional(),
+  userId: z.string().optional(),
 })
 export type ToggleRoomRequest = z.infer<typeof ToggleRoomRequestSchema>

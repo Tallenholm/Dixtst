@@ -37,7 +37,15 @@ export class RoomsController {
   ) => {
     const { roomId } = req.params
     const { isOn } = validate(ToggleRoomRequestSchema, req.body || {})
-    const ids = await this.service.toggleRoom(roomId, !!isOn)
-    res.json({ ok: true, ids })
+    const userId = (req as any).user?.userId as string
+    try {
+      const ids = await this.service.toggleRoom(roomId, userId, !!isOn)
+      res.json({ ok: true, ids })
+    } catch (err: any) {
+      if (err?.message === 'forbidden') {
+        return res.status(403).json({ error: 'forbidden' })
+      }
+      throw err
+    }
   }
 }

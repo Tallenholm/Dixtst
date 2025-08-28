@@ -11,6 +11,9 @@ import { createVibeRouter } from './routes/vibe'
 import { createSleepRouter } from './routes/sleep'
 import { asyncHandler } from './lib/asyncHandler'
 import { requireRoomRole } from './lib/roles'
+import { authMiddleware } from './lib/auth'
+import db from './services/db'
+import { PermissionsRepository } from './repositories/permissions'
 import { ZodError } from 'zod'
 import { RoomsRepository } from './repositories/rooms'
 import { RoomsService } from './services/rooms'
@@ -36,7 +39,10 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
 
   wss.on('connection', (ws) => { ws.send(JSON.stringify({ type: 'welcome' })) })
 
-  const roomsController = new RoomsController(new RoomsService(new RoomsRepository(hueBridge)))
+  const permissions = new PermissionsRepository(db)
+  const roomsController = new RoomsController(
+    new RoomsService(new RoomsRepository(hueBridge), permissions)
+  )
   const musicController = new MusicController(music)
   const overridesController = new OverridesController(storage)
   const vibeController = new VibeController(hueBridge)
@@ -46,7 +52,7 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
   const lightsController = new LightsController(hueBridge)
   const locationController = new LocationController(storage)
   const analyticsController = new AnalyticsController(storage)
-  const scheduleController = new ScheduleController(storage)
+  const scheduleController = new ScheduleController(storage, permissions)
   const effectsController = new EffectsController(hueBridge)
 
   app.use('/api/overrides', createOverridesRouter(overridesController))
@@ -57,8 +63,8 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
   // Core for UI
   app.get('/api/rooms', asyncHandler(roomsController.listRooms))
   app.get('/api/scenes', asyncHandler(roomsController.listScenes))
-  app.post('/api/rooms/:roomId/scene/apply', requireRoomRole('roomId'), asyncHandler(roomsController.applyScene))
-  app.post('/api/rooms/:roomId/toggle', requireRoomRole('roomId'), asyncHandler(roomsController.toggleRoom))
+  app.post('/api/rooms/:roomId/scene/apply', authMiddleware, requireRoomRole('roomId'), asyncHandler(roomsController.applyScene))
+  app.post('/api/rooms/:roomId/toggle', authMiddleware, requireRoomRole('roomId'), asyncHandler(roomsController.toggleRoom))
 
   // Sun aliases
   app.get('/api/sun-times', sunController.getSunTimes)
@@ -86,8 +92,8 @@ export async function registerRoutes(app: ReturnType<typeof express>) {
   app.get('/api/schedule/sun-times', scheduleController.sunTimes)
   app.get('/api/schedule/current-phase', scheduleController.currentPhase)
   app.get('/api/schedule', asyncHandler(scheduleController.list))
-  app.post('/api/schedule', asyncHandler(scheduleController.set))
-  app.patch('/api/schedule/:id', asyncHandler(scheduleController.patch))
+  app.post('/api/schedule', authMiddleware, asyncHandler(scheduleController.set))
+  app.patch('/api/schedule/:id', authMiddleware, asyncHandler(scheduleController.patch))
 
   // Effects (compat shell)
   app.post('/api/lights/sleep-mode', asyncHandler(effectsController.sleepMode))
