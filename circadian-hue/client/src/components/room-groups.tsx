@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { fetchJson } from "@/lib/api";
+import { fetchJson, getAuthContext } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +81,7 @@ export default function RoomGroups() {
     mutationFn: async ({ roomId, isOn }: { roomId: string; isOn: boolean }) => {
       return fetchJson(`/api/rooms/${roomId}/toggle`, {
         method: 'POST',
-        body: { isOn },
+        body: { isOn, userId: getAuthContext()?.userId },
       });
     },
     onSuccess: () => {
