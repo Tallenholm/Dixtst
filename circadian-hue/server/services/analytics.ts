@@ -1,21 +1,19 @@
-import { Pool } from 'pg';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { sql } from 'drizzle-orm';
+import { usageEvents } from '@shared/schema';
 import { startOfDay, subDays, format } from 'date-fns';
 
 export class AnalyticsService {
-  constructor(private readonly db: Pool) {}
+  constructor(private readonly db: NodePgDatabase) {}
 
   async recordEvent(eventType: string, details: any = {}) {
-    await this.db.query(
-      'INSERT INTO usage_events(event_type, details) VALUES ($1, $2)',
-      [eventType, details]
-    );
+    await this.db.insert(usageEvents).values({ eventType, details });
   }
 
   async getAnalytics() {
     const todayStart = startOfDay(new Date());
-    const todayRes = await this.db.query(
-      'SELECT event_type, details FROM usage_events WHERE created_at >= $1',
-      [todayStart]
+    const todayRes = await this.db.execute(
+      sql`SELECT event_type, details FROM usage_events WHERE created_at >= ${todayStart}`
     );
     const manualOverrides = todayRes.rows.filter(r => r.event_type === 'manual_override').length;
     const scheduleEvents = todayRes.rows.filter(r => r.event_type === 'schedule_phase');
@@ -36,15 +34,14 @@ export class AnalyticsService {
     }));
 
     const weekStart = startOfDay(subDays(new Date(), 6));
-    const weekRes = await this.db.query(
-      `SELECT date_trunc('day', created_at) as day,
+    const weekRes = await this.db.execute(
+      sql`SELECT date_trunc('day', created_at) as day,
               SUM(CASE WHEN event_type = 'schedule_phase' THEN 1 ELSE 0 END) AS schedule_followed,
               SUM(CASE WHEN event_type = 'manual_override' THEN 1 ELSE 0 END) AS overrides
          FROM usage_events
-        WHERE created_at >= $1
+        WHERE created_at >= ${weekStart}
         GROUP BY day
-        ORDER BY day`,
-      [weekStart]
+        ORDER BY day`
     );
 
     const weeklyTrends: { day: string; circadianCompliance: number; sleepQuality: number; overrides: number }[] = [];

@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { dbQueryDuration } from '../lib/metrics';
 
 const pool = new Pool({
@@ -16,5 +17,6 @@ pool.query = async (...args: any[]) => {
   }
 };
 
-export const db = pool;
-export default pool;
+export const db = drizzle(pool);
+export { pool };
+export default db;

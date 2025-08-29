@@ -1,4 +1,6 @@
-import { Pool } from 'pg'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { eq } from 'drizzle-orm'
+import { refreshTokens } from '@shared/schema'
 
 export interface RefreshTokenRecord {
   userId: string
@@ -8,30 +10,43 @@ export interface RefreshTokenRecord {
 }
 
 export class AuthRepository {
-  private db: Pool
+  private db: NodePgDatabase
 
-  constructor(db: Pool) {
+  constructor(db: NodePgDatabase) {
     this.db = db
   }
 
   async saveRefreshToken(record: RefreshTokenRecord) {
-    await this.db.query(
-      'INSERT INTO refresh_tokens(user_id, roles, household_id, token_hash, created_at) VALUES ($1, $2, $3, $4, NOW())',
-      [record.userId, JSON.stringify(record.roles), record.householdId ?? null, record.tokenHash]
-    )
+    await this.db.insert(refreshTokens).values({
+      userId: record.userId,
+      roles: record.roles,
+      householdId: record.householdId ?? null,
+      tokenHash: record.tokenHash,
+    })
   }
 
   async findByTokenHash(tokenHash: string): Promise<RefreshTokenRecord | undefined> {
-    const res = await this.db.query(
-      'SELECT user_id as "userId", roles, household_id as "householdId", token_hash as "tokenHash" FROM refresh_tokens WHERE token_hash = $1',
-      [tokenHash]
-    )
-    const row = res.rows[0]
+    const row = await this.db
+      .select({
+        userId: refreshTokens.userId,
+        roles: refreshTokens.roles,
+        householdId: refreshTokens.householdId,
+        tokenHash: refreshTokens.tokenHash,
+      })
+      .from(refreshTokens)
+      .where(eq(refreshTokens.tokenHash, tokenHash))
+      .limit(1)
+      .then(r => r[0])
     if (!row) return undefined
-    return { userId: row.userId, roles: JSON.parse(row.roles), householdId: row.householdId ?? undefined, tokenHash: row.tokenHash }
+    return {
+      userId: row.userId,
+      roles: row.roles ?? [],
+      householdId: row.householdId ?? undefined,
+      tokenHash: row.tokenHash,
+    }
   }
 
   async deleteByTokenHash(tokenHash: string) {
-    await this.db.query('DELETE FROM refresh_tokens WHERE token_hash = $1', [tokenHash])
+    await this.db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash))
   }
 }
