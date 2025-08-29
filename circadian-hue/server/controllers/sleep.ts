@@ -29,6 +29,10 @@ export class SleepController {
       endCt = 430
     const id = 'winddown'
     let errors = 0
+    const lights = await this.hueBridge.refreshLights()
+    const prev = lights[0]
+      ? { on: lights[0].isOn, bri: lights[0].brightness, ct: lights[0].colorTemp }
+      : undefined
     this.scheduler.scheduleInterval(
       id,
       async () => {
@@ -42,7 +46,10 @@ export class SleepController {
         } catch (err) {
           errors++
           logger.error({ err }, 'winddown interval failed')
-          if (errors >= 5) this.scheduler.clear(id)
+          if (errors >= 5) {
+            this.scheduler.clear(id)
+            if (prev) await this.hueBridge.applyStateToAllLights(prev)
+          }
         }
         if (i >= steps) this.scheduler.clear(id)
       },

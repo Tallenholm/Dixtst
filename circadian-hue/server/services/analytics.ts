@@ -6,8 +6,10 @@ import { startOfDay, subDays, format } from 'date-fns';
 export class AnalyticsService {
   constructor(private readonly db: NodePgDatabase) {}
 
-  async recordEvent(eventType: string, details: any = {}) {
-    await this.db.insert(usageEvents).values({ eventType, details });
+  private weeklyCache?: { data: any; expires: number }
+
+  async recordEvent(eventType: string, details: any = {}, duration?: number) {
+    await this.db.insert(usageEvents).values({ eventType, details, duration });
   }
 
   async getAnalytics() {
@@ -34,15 +36,22 @@ export class AnalyticsService {
     }));
 
     const weekStart = startOfDay(subDays(new Date(), 6));
-    const weekRes = await this.db.execute(
-      sql`SELECT date_trunc('day', created_at) as day,
+    let weekRes
+    const now = Date.now()
+    if (this.weeklyCache && this.weeklyCache.expires > now) {
+      weekRes = this.weeklyCache.data
+    } else {
+      weekRes = await this.db.execute(
+        sql`SELECT date_trunc('day', created_at) as day,
               SUM(CASE WHEN event_type = 'schedule_phase' THEN 1 ELSE 0 END) AS schedule_followed,
               SUM(CASE WHEN event_type = 'manual_override' THEN 1 ELSE 0 END) AS overrides
          FROM usage_events
         WHERE created_at >= ${weekStart}
         GROUP BY day
         ORDER BY day`
-    );
+      );
+      this.weeklyCache = { data: weekRes, expires: now + 60 * 60 * 1000 }
+    }
 
     const weeklyTrends: { day: string; circadianCompliance: number; sleepQuality: number; overrides: number }[] = [];
     for (let i = 0; i < 7; i++) {

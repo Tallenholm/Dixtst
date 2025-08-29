@@ -10,7 +10,8 @@ export class LightsController {
   }
 
   currentScene = async (_req: Request, res: Response) => {
-    res.json({ current: null })
+    const current = await this.hueBridge.getCurrentScene()
+    res.json({ current })
   }
 
   applyScene = async (

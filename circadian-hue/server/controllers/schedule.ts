@@ -18,8 +18,18 @@ export class ScheduleController {
   ) => {
     const lat = Number(req.query.lat)
     const lng = Number(req.query.lng)
-    const t = getSunTimes(lat, lng)
-    res.json(t)
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      return res
+        .status(400)
+        .json(error('invalid_coordinates', 'numeric lat and lng required'))
+    }
+    try {
+      const t = getSunTimes(lat, lng)
+      res.json(t)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      res.status(400).json(error('sun_times_error', message))
+    }
   }
 
   currentPhase = (
@@ -28,9 +38,19 @@ export class ScheduleController {
   ) => {
     const lat = Number(req.query.lat)
     const lng = Number(req.query.lng)
-    const phase = getCurrentPhase(lat, lng)
-    this.analytics.recordEvent('schedule_phase', { phase }).catch(() => {})
-    res.json({ phase })
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      return res
+        .status(400)
+        .json(error('invalid_coordinates', 'numeric lat and lng required'))
+    }
+    try {
+      const phase = getCurrentPhase(lat, lng)
+      this.analytics.recordEvent('schedule_phase', { phase }).catch(() => {})
+      res.json({ phase })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      res.status(400).json(error('phase_error', message))
+    }
   }
 
   list = async (_req: Request, res: Response) => {
@@ -67,7 +87,7 @@ export class ScheduleController {
     if (idx === -1)
       return res
         .status(404)
-        .json(error('schedule_not_found', 'Schedule not found'))
+        .json(error('schedule_not_found', `Schedule not found: ${id}`))
     existing[idx] = { ...existing[idx], ...req.body }
     await this.storage.setSetting('schedule', existing)
     res.json(existing[idx])

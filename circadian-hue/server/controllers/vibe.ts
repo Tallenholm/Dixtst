@@ -11,7 +11,9 @@ export class VibeController {
   ) => {
     const { seed, warmth, intensity } = req.body || {}
     const v = rollVibe({ seed, warmth, intensity })
-    await this.hueBridge.applyStateToAllLights({ on: true, bri: v.bri, ct: v.ct })
-    res.json({ applied: v })
+    const bri = Math.max(1, Math.min(254, v.bri))
+    const ct = Math.max(153, Math.min(500, v.ct))
+    await this.hueBridge.applyStateToAllLights({ on: true, bri, ct })
+    res.json({ applied: { ...v, bri, ct } })
   }
 }
