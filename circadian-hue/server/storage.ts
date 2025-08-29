@@ -1,8 +1,9 @@
-import type { Pool } from 'pg'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { eq } from 'drizzle-orm'
+import { lights as lightsTable, systemSettings } from '@shared/schema'
 import { db } from './services/db'
-import logger from './lib/logger'
 
-export interface Setting<T> { key: string; value: T; updatedAt: Date }
+export interface Setting<T> { key: string; value: T; updatedAt: string }
 
 export interface Light {
   id: string
@@ -10,7 +11,7 @@ export interface Light {
   isOn: boolean
   brightness: number
   colorTemp: number
-  updatedAt: Date
+  updatedAt: string
 }
 
 export interface IStorage {
@@ -22,50 +23,65 @@ export interface IStorage {
 }
 
 class DbStorage implements IStorage {
-  private db: Pool
+  private db: NodePgDatabase
 
-  constructor(db: Pool) {
+  constructor(db: NodePgDatabase) {
     this.db = db
   }
 
   async getAllLights(): Promise<Light[]> {
-    const res = await this.db.query('SELECT id, name, is_on as "isOn", brightness, color_temp as "colorTemp" FROM lights')
-    return res.rows.map((row: any) => ({ ...row, updatedAt: new Date() }))
+    const rows = await this.db
+      .select({
+        id: lightsTable.id,
+        name: lightsTable.name,
+        isOn: lightsTable.isOn,
+        brightness: lightsTable.brightness,
+        colorTemp: lightsTable.colorTemp,
+      })
+      .from(lightsTable)
+    return rows.map(row => ({ ...row, updatedAt: new Date().toISOString() }))
   }
 
   async getAllSettings(): Promise<Setting<unknown>[]> {
-    const res = await this.db.query('SELECT key, value, updated_at FROM system_settings')
-    return res.rows.map((row: any) => ({ key: row.key, value: row.value, updatedAt: row.updated_at }))
+    const rows = await this.db.select().from(systemSettings)
+    return rows.map(row => ({ key: row.key, value: row.value, updatedAt: row.updatedAt.toISOString() }))
   }
 
   async getSetting<T>(key: string): Promise<Setting<T> | undefined> {
-    const res = await this.db.query('SELECT key, value, updated_at FROM system_settings WHERE key = $1', [key])
-    const row = res.rows[0]
-    return row ? { key: row.key, value: row.value, updatedAt: row.updated_at } : undefined
+    const rows = await this.db.select().from(systemSettings).where(eq(systemSettings.key, key)).limit(1)
+    const row = rows[0]
+    return row ? { key: row.key, value: row.value as T, updatedAt: row.updatedAt.toISOString() } : undefined
   }
 
   async setSetting<T>(key: string, value: T): Promise<Setting<T>> {
-    const res = await this.db.query('INSERT INTO system_settings(key, value, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW() RETURNING key, value, updated_at', [key, value])
-    const row = res.rows[0]
-    return { key: row.key, value: row.value, updatedAt: row.updated_at }
+    const row = await this.db.transaction(async tx => {
+      const existing = await tx
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, key))
+        .for('update')
+      if (existing.length > 0) {
+        const updated = await tx
+          .update(systemSettings)
+          .set({ value, updatedAt: new Date() })
+          .where(eq(systemSettings.key, key))
+          .returning()
+        return updated[0]
+      } else {
+        const inserted = await tx
+          .insert(systemSettings)
+          .values({ key, value })
+          .returning()
+        return inserted[0]
+      }
+    })
+    return { key: row.key, value: row.value as T, updatedAt: row.updatedAt.toISOString() }
   }
 
   async deleteSetting(key: string): Promise<boolean> {
-    const res = await this.db.query('DELETE FROM system_settings WHERE key = $1', [key])
+    const res = await this.db.delete(systemSettings).where(eq(systemSettings.key, key))
     return res.rowCount > 0
   }
 }
-
-async function ensureIndexes(db: Pool) {
-  try {
-    await db.query('CREATE INDEX IF NOT EXISTS idx_system_settings_key ON system_settings(key)')
-    await db.query('CREATE INDEX IF NOT EXISTS idx_lights_name ON lights(name)')
-  } catch (err) {
-    logger.error({ err }, 'Failed to ensure indexes')
-  }
-}
-
-// fire and forget
-ensureIndexes(db)
 
 export const storage: IStorage = new DbStorage(db)

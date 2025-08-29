@@ -11,7 +11,9 @@ export const households = pgTable("households", {
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  roles: jsonb("roles").$type<string[]>().default(sql`'[]'::jsonb`),
   householdId: varchar("household_id").references(() => households.id),
   sunriseOffset: integer("sunrise_offset").default(0),
 });
@@ -87,6 +89,14 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const refreshTokens = pgTable("refresh_tokens", {
+  userId: varchar("user_id").references(() => users.id),
+  roles: jsonb("roles").$type<string[]>(),
+  householdId: varchar("household_id").references(() => households.id),
+  tokenHash: text("token_hash").primaryKey(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const usageEvents = pgTable("usage_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   eventType: text("event_type").notNull(),
@@ -148,7 +158,8 @@ export const insertRoomPermissionSchema = createInsertSchema(roomPermissions).pi
 });
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
-  password: true,
+  email: true,
+  passwordHash: true,
 });
 
 // Types
@@ -170,6 +181,7 @@ export type InsertUsageEvent = z.infer<typeof insertUsageEventSchema>;
 export type UsageEvent = typeof usageEvents.$inferSelect;
 export type InsertRoomPermission = z.infer<typeof insertRoomPermissionSchema>;
 export type RoomPermission = typeof roomPermissions.$inferSelect;
+export type RefreshToken = typeof refreshTokens.$inferSelect;
 
 // System status shape
 export interface SystemStatus {

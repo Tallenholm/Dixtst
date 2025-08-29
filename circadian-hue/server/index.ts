@@ -16,7 +16,7 @@ import { AuthController } from './controllers/auth';
 import { AuthRepository } from './repositories/auth';
 import { UsersRepository } from './repositories/users';
 import { createAuthRouter } from './routes/auth';
-import { db } from './services/db';
+import { db, pool } from './services/db';
 import { httpLogger, logger } from './lib/logger';
 import { metricsEndpoint, httpRequestDuration } from './lib/metrics';
 import { shutdownJobs } from './services/jobs';
@@ -103,7 +103,7 @@ async function start() {
   const shutdown = async () => {
     logger.info('shutting down');
     await new Promise((resolve) => server.close(resolve));
-    await db.end();
+    await pool.end();
     await shutdownJobs();
     if (config.get('sentryDsn')) await Sentry.close(2000);
     process.exit(0);

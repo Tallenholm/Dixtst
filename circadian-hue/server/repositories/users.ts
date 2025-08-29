@@ -1,4 +1,6 @@
-import { Pool } from 'pg'
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { eq, or } from 'drizzle-orm'
+import { users } from '@shared/schema'
 import bcrypt from 'bcrypt'
 
 export interface UserRecord {
@@ -11,25 +13,33 @@ export interface UserRecord {
 }
 
 export class UsersRepository {
-  private db: Pool
+  private db: NodePgDatabase
 
-  constructor(db: Pool) {
+  constructor(db: NodePgDatabase) {
     this.db = db
   }
 
   private async findByIdentifier(identifier: string): Promise<UserRecord | undefined> {
-    const res = await this.db.query(
-      'SELECT id, username, email, password_hash as "passwordHash", roles, household_id as "householdId" FROM users WHERE username = $1 OR email = $1 LIMIT 1',
-      [identifier]
-    )
-    const row = res.rows[0]
+    const row = await this.db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        passwordHash: users.passwordHash,
+        roles: users.roles,
+        householdId: users.householdId,
+      })
+      .from(users)
+      .where(or(eq(users.username, identifier), eq(users.email, identifier)))
+      .limit(1)
+      .then(r => r[0])
     if (!row) return undefined
     return {
       id: row.id,
       username: row.username,
       email: row.email,
       passwordHash: row.passwordHash,
-      roles: JSON.parse(row.roles),
+      roles: row.roles ?? [],
       householdId: row.householdId ?? undefined,
     }
   }
