@@ -147,18 +147,21 @@ export class HueBridgeService {
             'Please press the Hue Bridge link button and retry pairing.',
           )
         }
+        const message = `Hue Bridge error ${err.getHueErrorType()}: ${err.message}`
         logger.error('Hue API error during pairing', {
           hueErrorType: err.getHueErrorType(),
           message: err.message,
         })
+        throw new Error(message)
       } else if (err instanceof Error) {
         logger.error('Unexpected error during pairing', {
           message: err.message,
         })
+        throw err
       } else {
         logger.error('Unexpected non-error during pairing', err)
+        throw new Error(String(err))
       }
-      throw err instanceof Error ? err : new Error(String(err))
     }
   }
 
