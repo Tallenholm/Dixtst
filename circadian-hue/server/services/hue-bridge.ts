@@ -18,9 +18,9 @@ function loadColorMap(): Record<string, number> {
   return colorMap
 }
 
-function mapColor(name?: string): number | undefined {
+function mapColor(name?: string): number {
   const colors = loadColorMap()
-  return name ? colors[name] : undefined
+  return name && colors[name] !== undefined ? colors[name] : 360
 }
 
 export class HueBridgeService {
@@ -165,8 +165,8 @@ export class HueBridgeService {
   async startEffect(
     effectId: string,
     settings: {
-      speed: number
-      intensity: number
+      speed?: number
+      intensity?: number
       colors?: string[]
       duration?: number
     },
@@ -183,11 +183,12 @@ export class HueBridgeService {
       }
     })
 
-    const bri = Math.round(
-      Math.max(1, Math.min(254, (settings.intensity / 100) * 254)),
-    )
+    const intensity = Math.max(0, Math.min(100, settings.intensity ?? 80))
+    const bri = Math.round((intensity / 100) * 254)
     const colors =
-      settings.colors && settings.colors.length > 0 ? settings.colors : ['warm']
+      settings.colors && settings.colors.length > 0
+        ? settings.colors
+        : ['white']
     let index = 0
 
     const applyColor = async (name: string) => {
@@ -197,18 +198,20 @@ export class HueBridgeService {
 
     await applyColor(colors[index])
 
+    const speed = Math.max(0.1, Math.min(10, settings.speed ?? 5))
     if (colors.length > 1) {
-      const interval = 1000 / Math.max(1, settings.speed || 1)
+      const interval = 1000 / speed
       this.colorCycleTimer = setInterval(() => {
         index = (index + 1) % colors.length
         applyColor(colors[index]).catch(() => undefined)
       }, interval)
     }
 
-    if (settings.duration) {
+    const duration = Math.max(0, Math.min(3600, settings.duration ?? 0))
+    if (duration > 0) {
       this.effectTimer = setTimeout(() => {
         this.stopEffect().catch(() => undefined)
-      }, settings.duration * 1000)
+      }, duration * 1000)
     }
   }
 

@@ -23,7 +23,15 @@ export class EffectsController {
     req: Request<
       any,
       any,
-      { effectId?: string; settings?: { speed: number; intensity: number } }
+      {
+        effectId?: string
+        settings?: {
+          speed?: number
+          intensity?: number
+          colors?: string[]
+          duration?: number
+        }
+      }
     >,
     res: Response,
   ) => {
@@ -32,10 +40,7 @@ export class EffectsController {
       return res
         .status(400)
         .json(error('effect_id_required', 'effectId required'))
-    await this.hueBridge.startEffect(
-      effectId,
-      settings || { speed: 5, intensity: 80 },
-    )
+    await this.hueBridge.startEffect(effectId, settings || {})
     await this.analytics.recordEvent('effect_start', { effectId, settings })
     res.json({ ok: true })
   }

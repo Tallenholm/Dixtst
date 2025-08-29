@@ -9,6 +9,10 @@
   "green": 180,
   "purple": 470,
   "pink": 460,
+  "amber": 370,
+  "magenta": 480,
+  "cool": 250,
+  "warmwhite": 380,
   "rainbow": 350,
   "white": 350
 }
