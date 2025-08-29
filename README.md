@@ -31,6 +31,10 @@ IPAPI_ENDPOINT=https://ipapi.co/json
 
 `DATABASE_URL`, `PORT`, `JWT_SECRET`, and `IPAPI_ENDPOINT` must be defined for the server to start.
 
+`JWT_SECRET` is used to sign and verify JSON Web Tokens for API authentication. Choose a strong, random value.
+
+User accounts require a username or email and a password hashed with bcrypt. Plaintext passwords are never stored.
+
 ### Development
 
 Common tasks are exposed through npm scripts:

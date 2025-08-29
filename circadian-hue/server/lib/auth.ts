@@ -1,16 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
-import jwt from 'jsonwebtoken'
-
-export interface TokenPayload {
-  userId: string
-  roles: string[]
-  householdId?: string
-}
-
-const SECRET = process.env.JWT_SECRET
-if (!SECRET) {
-  throw new Error('JWT_SECRET is required')
-}
+import { verifyToken, TokenPayload } from '../services/jwt'
+export type { TokenPayload } from '../services/jwt'
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const header = req.header('Authorization')
@@ -20,10 +10,10 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
   const token = header.substring(7)
   try {
-    const payload = jwt.verify(token, SECRET) as TokenPayload
+    const payload = verifyToken(token)
     ;(req as any).user = payload
     return next()
   } catch {
-    return res.status(401).json({ error: 'invalid_token' })
+    return res.status(401).json({ error: 'unauthorized' })
   }
 }
