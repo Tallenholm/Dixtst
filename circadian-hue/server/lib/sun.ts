@@ -1,11 +1,13 @@
 import SunCalc from 'suncalc'
 
 type SunTimes = { sunrise:Date, sunset:Date, civilTwilightBegin:Date, civilTwilightEnd:Date }
-const cache = new Map<string, SunTimes>()
+type CacheEntry = { times: SunTimes; expires: number }
+const cache = new Map<string, CacheEntry>()
+const TTL = 24 * 60 * 60 * 1000 // 24h
 const keyFor = (lat:number, lng:number, date:Date)=> {
   const rLat = Math.round(lat*100)/100
   const rLng = Math.round(lng*100)/100
-  const day = date.toISOString().slice(0,10)
+  const day = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`
   return `${rLat}:${rLng}:${day}`
 }
 
@@ -20,13 +22,22 @@ export function getSunTimes(lat:number, lng:number, date=new Date()): SunTimes {
   if (lat < -90 || lat > 90) throw new CoordinateRangeError('lat', lat)
   if (lng < -180 || lng > 180) throw new CoordinateRangeError('lng', lng)
   const key = keyFor(lat, lng, date)
-  let t = cache.get(key)
-  if (!t) {
+  const now = Date.now()
+  let entry = cache.get(key)
+  if (!entry || entry.expires <= now) {
     const c = SunCalc.getTimes(date, lat, lng)
-    t = { sunrise:c.sunrise, sunset:c.sunset, civilTwilightBegin:c.dawn, civilTwilightEnd:c.dusk }
-    cache.set(key, t)
+    entry = {
+      times: {
+        sunrise: c.sunrise,
+        sunset: c.sunset,
+        civilTwilightBegin: c.dawn,
+        civilTwilightEnd: c.dusk,
+      },
+      expires: now + TTL,
+    }
+    cache.set(key, entry)
   }
-  return t
+  return entry.times
 }
 
 export type Phase = 'night'|'dawn'|'day'|'dusk'

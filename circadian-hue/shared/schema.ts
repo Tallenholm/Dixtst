@@ -101,6 +101,7 @@ export const usageEvents = pgTable("usage_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   eventType: text("event_type").notNull(),
   details: jsonb("details"),
+  duration: integer("duration"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

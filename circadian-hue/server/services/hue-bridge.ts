@@ -72,6 +72,17 @@ export class HueBridgeService {
     await api.groups.setGroupState(roomId, st);
   }
 
+  async getCurrentScene(roomId = '0'): Promise<string | null> {
+    const api = await this.getApi();
+    try {
+      const g = await api.groups.getGroup(roomId);
+      const sceneId = g?.state?.scene || g?.action?.scene;
+      return sceneId ? String(sceneId) : null;
+    } catch {
+      return null;
+    }
+  }
+
   async getRoomLightIds(roomId: string) {
     const api = await this.getApi();
     const g = await api.groups.getGroup(roomId);

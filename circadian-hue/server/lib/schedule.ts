@@ -80,8 +80,8 @@ export function findActiveEntry(
   return undefined;
 }
 
-export function entryToState(e: ScheduleEntry) {
-  if (!e) return {} as any;
+export function entryToState(e?: ScheduleEntry) {
+  if (!e) return null;
   if (e.profileKey) {
     const p = DEFAULT_PROFILES.find(x => x.key === e.profileKey);
     if (p) return { bri: p.bri, ct: p.ct, dnd: e.dnd };

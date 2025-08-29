@@ -8,7 +8,10 @@ type RoomState = {
   lastBri?: number
   lastCt?: number
   lastAt?: number
+  lock?: boolean
 }
+
+const key = (roomId:string)=>`music-mode:room:${roomId}`
 
 export class MusicMode {
   private storage: IStorage
@@ -16,7 +19,24 @@ export class MusicMode {
   private rooms = new Map<string, RoomState>()
   private minIntervalMs = 180 // throttle to avoid strobe
 
-  constructor(storage:IStorage, hue:HueBridgeService) { this.storage = storage; this.hue = hue }
+  constructor(storage:IStorage, hue:HueBridgeService) {
+    this.storage = storage; this.hue = hue
+    this.load().catch(()=>undefined)
+  }
+
+  private async load() {
+    try {
+      const all = await this.storage.getAllSettings()
+      for (const s of all) {
+        if (s.key.startsWith('music-mode:room:')) {
+          const roomId = s.key.split(':').pop()!
+          this.rooms.set(roomId, { ...(s.value as any) })
+        }
+      }
+    } catch (err) {
+      logger.warn('failed to load music mode state', err as any)
+    }
+  }
 
   start(roomId: string, sensitivity=1.0) {
     const s = this.rooms.get(roomId) || { enabled:false, sensitivity:1 }
@@ -26,6 +46,8 @@ export class MusicMode {
     s.lastCt = undefined
     s.lastAt = undefined
     this.rooms.set(roomId, s)
+    if (this.storage?.setSetting)
+      void this.storage.setSetting(key(roomId), { enabled: s.enabled, sensitivity: s.sensitivity })
     return s
   }
 
@@ -36,6 +58,8 @@ export class MusicMode {
     s.lastCt = undefined
     s.lastAt = undefined
     this.rooms.set(roomId, s)
+    if (this.storage?.setSetting)
+      void this.storage.setSetting(key(roomId), { enabled: s.enabled, sensitivity: s.sensitivity })
     return s
   }
 
@@ -44,10 +68,11 @@ export class MusicMode {
   // energy in [0, 1], tempo optional (bpm), will map to bri/ct and set group state
   async telemetry(roomId: string, energy: number, tempo?: number) {
     const s = this.rooms.get(roomId)
-    if (!s || !s.enabled) return
+    if (!s || !s.enabled || s.lock) return
     const now = Date.now()
     if (s.lastAt && now - s.lastAt < this.minIntervalMs) return
     s.lastAt = now
+    s.lock = true
 
     const e = Math.max(0, Math.min(1, energy * (s.sensitivity || 1)))
     // brightness: 60..254 with ease-out
@@ -67,6 +92,8 @@ export class MusicMode {
       await Promise.all(ids.map((id: string) => this.hue.setLightState(id, { on: true, bri: sbri, ct: sct })))
     } catch (err) {
       logger.warn('Failed to apply state to lights', err as any)
+    } finally {
+      s.lock = false
     }
   }
 }

@@ -30,7 +30,20 @@ export class LocationController {
     >,
     res: Response,
   ) => {
-    const value = req.body
+    const { latitude, longitude, city, country } = req.body
+    if (
+      typeof latitude !== 'number' ||
+      latitude < -90 ||
+      latitude > 90 ||
+      typeof longitude !== 'number' ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return res
+        .status(400)
+        .json(error('invalid_coordinates', 'latitude must be between -90 and 90 and longitude between -180 and 180'))
+    }
+    const value = { latitude, longitude, city, country }
     await this.storage.setSetting('location', value)
     res.json(value)
   }
