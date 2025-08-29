@@ -7,6 +7,7 @@ import {
   ToggleRoomRequestSchema,
 } from '../../shared/dto/room'
 import { validate } from '../../shared/dto/validate'
+import { error } from '../lib/error'
 
 export class RoomsController {
   constructor(private readonly service: RoomsService) {}
@@ -23,7 +24,7 @@ export class RoomsController {
 
   applyScene = async (
     req: Request<{ roomId: string }, any, ApplySceneRequest>,
-    res: Response
+    res: Response,
   ) => {
     const { roomId } = req.params
     const { sceneId } = validate(ApplySceneRequestSchema, req.body)
@@ -33,7 +34,7 @@ export class RoomsController {
 
   toggleRoom = async (
     req: Request<{ roomId: string }, any, ToggleRoomRequest>,
-    res: Response
+    res: Response,
   ) => {
     const { roomId } = req.params
     const { isOn } = validate(ToggleRoomRequestSchema, req.body || {})
@@ -43,7 +44,7 @@ export class RoomsController {
       res.json({ ok: true, ids })
     } catch (err: any) {
       if (err?.message === 'forbidden') {
-        return res.status(403).json({ error: 'forbidden' })
+        return res.status(403).json(error('forbidden', 'Forbidden'))
       }
       throw err
     }

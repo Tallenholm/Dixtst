@@ -1,12 +1,17 @@
 import { Request, Response } from 'express'
 import { HueBridgeService } from '../services/hue-bridge'
+import { error } from '../lib/error'
 
 export class BridgesController {
   constructor(private readonly hueBridge: HueBridgeService) {}
 
   list = async (_req: Request, res: Response) => {
     const ips = await this.hueBridge.discover()
-    const bridges = ips.map((ip: string, idx: number) => ({ id: ip, ip, name: `Hue Bridge ${idx + 1}` }))
+    const bridges = ips.map((ip: string, idx: number) => ({
+      id: ip,
+      ip,
+      name: `Hue Bridge ${idx + 1}`,
+    }))
     res.json(bridges)
   }
 
@@ -21,7 +26,10 @@ export class BridgesController {
       const r = await this.hueBridge.pairWithLinkButton(ip)
       res.json({ paired: true, auth: r })
     } catch (e: any) {
-      if (e.message === 'link_button_not_pressed') return res.status(428).json({ error: 'link_button_not_pressed' })
+      if (e.message === 'link_button_not_pressed')
+        return res
+          .status(428)
+          .json(error('link_button_not_pressed', 'Link button not pressed'))
       throw e
     }
   }

@@ -13,9 +13,7 @@
     "types": ["node"],
     "moduleResolution": "node",
     "noEmit": false,
-    "allowImportingTsExtensions": false,
-    "strict": false,
-    "noImplicitAny": false
+    "allowImportingTsExtensions": false
   },
   "include": ["server/**/*"],
   "exclude": ["node_modules", "dist"]
