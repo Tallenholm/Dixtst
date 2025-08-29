@@ -11,7 +11,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   const token = header.substring(7)
   try {
     const payload = verifyToken(token)
-    ;(req as any).user = payload
+    req.user = payload;
     return next()
   } catch {
     return res.status(401).json({ error: 'unauthorized' })
