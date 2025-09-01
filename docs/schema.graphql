@@ -1,9 +1,0 @@
-type Query {
-  alexa: String
-  effects: String
-  google_home: String
-  health: String
-  homekit: String
-  ifttt: String
-  sensors: String
-}

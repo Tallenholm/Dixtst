@@ -10,12 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { config as loadEnv } from 'dotenv-safe';
 import convict from 'convict';
 import * as Sentry from '@sentry/node';
-import { authMiddleware } from './lib/auth';
 import { registerRoutes } from './routes';
-import { AuthController } from './controllers/auth';
-import { AuthRepository } from './repositories/auth';
-import { UsersRepository } from './repositories/users';
-import { createAuthRouter } from './routes/auth';
 import { db, pool } from './services/db';
 import { httpLogger, logger } from './lib/logger';
 import { metricsEndpoint, httpRequestDuration } from './lib/metrics';
@@ -82,14 +77,6 @@ async function start() {
   app.use(limiter);
 
   app.get('/metrics', metricsEndpoint);
-
-  const authController = new AuthController(
-    new AuthRepository(db),
-    new UsersRepository(db)
-  );
-  app.use('/api/auth', createAuthRouter(authController));
-
-  app.use(authMiddleware);
 
   const server = await registerRoutes(app, {
     key: fs.readFileSync(config.get('tlsKeyPath')),
