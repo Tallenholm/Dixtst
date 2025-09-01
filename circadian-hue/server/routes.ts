@@ -10,8 +10,6 @@ import { createMusicRouter } from './routes/music';
 import { createVibeRouter } from './routes/vibe';
 import { createSleepRouter } from './routes/sleep';
 import { asyncHandler } from './lib/asyncHandler';
-import { requireRoomRole } from './lib/roles';
-import { authMiddleware } from './lib/auth';
 import db from './services/db';
 import { PermissionsRepository } from './repositories/permissions';
 import { ZodError } from 'zod';
@@ -75,8 +73,8 @@ export async function registerRoutes(app: ReturnType<typeof express>, httpsOptio
   // Core for UI
   app.get('/api/rooms', asyncHandler(roomsController.listRooms));
   app.get('/api/scenes', asyncHandler(roomsController.listScenes));
-  app.post('/api/rooms/:roomId/scene/apply', authMiddleware, requireRoomRole('roomId'), asyncHandler(roomsController.applyScene));
-  app.post('/api/rooms/:roomId/toggle', authMiddleware, requireRoomRole('roomId'), asyncHandler(roomsController.toggleRoom));
+  app.post('/api/rooms/:roomId/scene/apply', asyncHandler(roomsController.applyScene));
+  app.post('/api/rooms/:roomId/toggle', asyncHandler(roomsController.toggleRoom));
 
   // Sun aliases
   app.get('/api/sun-times', sunController.getSunTimes);
@@ -104,11 +102,11 @@ export async function registerRoutes(app: ReturnType<typeof express>, httpsOptio
   app.get('/api/schedule/sun-times', scheduleController.sunTimes);
   app.get('/api/schedule/current-phase', scheduleController.currentPhase);
   app.get('/api/schedule', asyncHandler(scheduleController.list));
-  app.post('/api/schedule', authMiddleware, asyncHandler(scheduleController.set));
-  app.patch('/api/schedule/:id', authMiddleware, asyncHandler(scheduleController.patch));
+  app.post('/api/schedule', asyncHandler(scheduleController.set));
+  app.patch('/api/schedule/:id', asyncHandler(scheduleController.patch));
 
   // Calendar integration
-  app.get('/api/calendar/busy', authMiddleware, asyncHandler(calendarController.busy));
+  app.get('/api/calendar/busy', asyncHandler(calendarController.busy));
 
   // Effects (compat shell)
   app.post('/api/lights/sleep-mode', asyncHandler(effectsController.sleepMode));
