@@ -24,6 +24,17 @@ export interface PresetScene {
   colorTemp: number;
 }
 
+export interface CustomScene {
+  id: string;
+  name: string;
+  description?: string;
+  brightness: number;
+  colorTemp?: number;
+  hue?: number;
+  sat?: number;
+  createdAt: string;
+}
+
 export interface HueSceneSummary {
   id: string;
   name: string;
@@ -68,6 +79,14 @@ export interface LocationInfo {
   country?: string;
 }
 
+export interface CircadianTimelineEntry {
+  phase: CircadianPhase;
+  start: string;
+  end: string;
+  brightness: number;
+  colorTemp: number;
+}
+
 export interface BridgeCredentials {
   ip: string;
   username: string;
@@ -90,5 +109,7 @@ export interface StatusPayload {
   effects: LightEffectDefinition[];
   presetScenes: PresetScene[];
   hueScenes: HueSceneSummary[];
+  customScenes: CustomScene[];
+  circadianTimeline: CircadianTimelineEntry[];
   updatedAt: string;
 }

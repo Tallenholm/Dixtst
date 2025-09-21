@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import type { BridgeCredentials, LocationInfo, ScheduleEntry } from '@shared/types';
+import type { BridgeCredentials, CustomScene, LocationInfo, ScheduleEntry } from '@shared/types';
 
 export interface SettingRecord<T> {
   key: string;
@@ -72,6 +72,14 @@ export class Storage {
 
   saveSchedules(entries: ScheduleEntry[]): void {
     this.setSetting('schedules', entries);
+  }
+
+  getCustomScenes(): CustomScene[] {
+    return this.getSetting<CustomScene[]>('customScenes')?.value ?? [];
+  }
+
+  saveCustomScenes(scenes: CustomScene[]): void {
+    this.setSetting('customScenes', scenes);
   }
 
   getLocation(): LocationInfo | undefined {

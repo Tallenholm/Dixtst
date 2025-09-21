@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LightStateSummary, ScheduleEntry, StatusPayload } from '@shared/types';
+import { formatDateTime, formatTime, intensityLabel, phaseLabel } from './utils/formatters';
+import CircadianTimeline from './components/CircadianTimeline';
 
 const POLL_INTERVAL = Number(import.meta.env.VITE_STATUS_INTERVAL ?? 5000);
 
@@ -57,37 +59,18 @@ type LocationHandler = (payload: {
 
 type BridgeHandler = (ip: string) => Promise<void>;
 
-function formatTime(iso?: string) {
-  if (!iso) return '—';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+type CustomSceneInput = {
+  name: string;
+  description?: string;
+  brightness: number;
+  colorTemp?: number;
+  hue?: number;
+  sat?: number;
+};
 
-function formatDateTime(iso?: string) {
-  if (!iso) return '—';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-}
-
-function phaseLabel(phase?: string) {
-  switch (phase) {
-    case 'dawn':
-      return 'Dawn';
-    case 'day':
-      return 'Daylight';
-    case 'dusk':
-      return 'Dusk';
-    case 'night':
-    default:
-      return 'Night';
-  }
-}
-
-function intensityLabel(value: number) {
-  return `${Math.round((value / 254) * 100)}%`;
-}
+type CustomSceneCreateHandler = (scene: CustomSceneInput) => Promise<StatusPayload['customScenes'][number]>;
+type CustomSceneApplyHandler = (id: string) => Promise<void>;
+type CustomSceneDeleteHandler = (id: string) => Promise<void>;
 
 function DashboardTab({
   status,
@@ -146,6 +129,8 @@ function DashboardTab({
           </button>
         </div>
       </section>
+
+      <CircadianTimeline timeline={status.circadianTimeline} currentPhase={status.phase} />
 
       <section className="card p-6 space-y-4">
         <div className="flex items-center justify-between">
@@ -475,7 +460,66 @@ function ScheduleTab({ schedules, onSave }: { schedules: ScheduleEntry[]; onSave
   );
 }
 
-function ScenesTab({ status, onApplyScene }: { status: StatusPayload; onApplyScene: SceneApplyHandler }) {
+function ScenesTab({
+  status,
+  onApplyScene,
+  onCreateCustomScene,
+  onApplyCustomScene,
+  onDeleteCustomScene,
+}: {
+  status: StatusPayload;
+  onApplyScene: SceneApplyHandler;
+  onCreateCustomScene: CustomSceneCreateHandler;
+  onApplyCustomScene: CustomSceneApplyHandler;
+  onDeleteCustomScene: CustomSceneDeleteHandler;
+}) {
+  const [mode, setMode] = useState<'white' | 'color'>('white');
+  const [draft, setDraft] = useState({
+    name: '',
+    description: '',
+    brightness: 180,
+    colorTemp: 350,
+    hue: 40000,
+    sat: 200,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!draft.name.trim()) return;
+    setSaving(true);
+    try {
+      await onCreateCustomScene({
+        name: draft.name.trim(),
+        description: draft.description.trim() ? draft.description.trim() : undefined,
+        brightness: draft.brightness,
+        colorTemp: mode === 'white' ? draft.colorTemp : undefined,
+        hue: mode === 'color' ? draft.hue : undefined,
+        sat: mode === 'color' ? draft.sat : undefined,
+      });
+      setDraft({
+        name: '',
+        description: '',
+        brightness: 180,
+        colorTemp: 350,
+        hue: 40000,
+        sat: 200,
+      });
+      setMode('white');
+    } catch (error) {
+      console.error('Failed to create custom scene', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sortedCustomScenes = useMemo(
+    () => [...status.customScenes].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [status.customScenes],
+  );
+
+  const disableSave = !draft.name.trim() || saving;
+
   return (
     <div className="space-y-8">
       <section className="card p-6 space-y-4">
@@ -490,6 +534,149 @@ function ScenesTab({ status, onApplyScene }: { status: StatusPayload; onApplySce
           ))}
         </div>
       </section>
+
+      <section className="card space-y-4 p-6">
+        <h3 className="text-lg font-semibold">Create a custom scene</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Scene name</span>
+              <input
+                value={draft.name}
+                onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                placeholder="Movie night"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Description</span>
+              <input
+                value={draft.description}
+                onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                placeholder="Warm dimmed lights for relaxing"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              />
+            </label>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2 text-xs text-slate-400">
+              <span>Brightness</span>
+              <input
+                type="range"
+                min={1}
+                max={254}
+                value={draft.brightness}
+                onChange={(event) => setDraft((current) => ({ ...current, brightness: Number(event.target.value) }))}
+              />
+              <span className="text-right text-xs text-slate-500">{intensityLabel(draft.brightness)}</span>
+            </label>
+            <div className="space-y-2 text-xs text-slate-400">
+              <span>Color mode</span>
+              <div className="flex gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input type="radio" checked={mode === 'white'} onChange={() => setMode('white')} />
+                  <span>White ambiance</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="radio" checked={mode === 'color'} onChange={() => setMode('color')} />
+                  <span>Color</span>
+                </label>
+              </div>
+              {mode === 'white' ? (
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min={153}
+                    max={500}
+                    value={draft.colorTemp}
+                    onChange={(event) => setDraft((current) => ({ ...current, colorTemp: Number(event.target.value) }))}
+                  />
+                  <span className="text-right text-xs text-slate-500">CT {draft.colorTemp}</span>
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="space-y-2">
+                    <span>Hue</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={65535}
+                      value={draft.hue}
+                      onChange={(event) => setDraft((current) => ({ ...current, hue: Number(event.target.value) }))}
+                    />
+                    <span className="text-right text-xs text-slate-500">{draft.hue}</span>
+                  </label>
+                  <label className="space-y-2">
+                    <span>Saturation</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={254}
+                      value={draft.sat}
+                      onChange={(event) => setDraft((current) => ({ ...current, sat: Number(event.target.value) }))}
+                    />
+                    <span className="text-right text-xs text-slate-500">{draft.sat}</span>
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button type="submit" className="button-primary" disabled={disableSave}>
+              {saving ? 'Saving…' : 'Save custom scene'}
+            </button>
+          </div>
+        </form>
+        <div className="border-t border-slate-800 pt-4">
+          <h4 className="text-base font-semibold text-slate-200">Saved scenes</h4>
+          {sortedCustomScenes.length === 0 ? (
+            <p className="mt-2 text-sm text-slate-400">No custom scenes yet. Create one above to quickly reapply it later.</p>
+          ) : (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {sortedCustomScenes.map((scene) => (
+                <div
+                  key={scene.id}
+                  className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 shadow-sm transition hover:border-circadian-amber/60"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <h4 className="text-lg font-semibold text-circadian-amber">{scene.name}</h4>
+                      {scene.description && <p className="text-sm text-slate-300">{scene.description}</p>}
+                      <p className="text-xs text-slate-500">
+                        Brightness {intensityLabel(scene.brightness)}
+                        {scene.colorTemp ? ` · CT ${scene.colorTemp}` : ''}
+                        {scene.hue !== undefined ? ` · Hue ${scene.hue} · Sat ${scene.sat ?? 0}` : ''}
+                      </p>
+                      <p className="text-[11px] text-slate-500">Created {formatDateTime(scene.createdAt)}</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void onApplyCustomScene(scene.id);
+                        }}
+                        className="button-primary"
+                      >
+                        Apply
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void onDeleteCustomScene(scene.id);
+                        }}
+                        className="button-secondary text-xs"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="card p-6 space-y-4">
         <h3 className="text-lg font-semibold">Hue bridge scenes</h3>
         {status.hueScenes.length === 0 ? (
@@ -500,7 +687,7 @@ function ScenesTab({ status, onApplyScene }: { status: StatusPayload; onApplySce
               <button
                 key={scene.id}
                 onClick={() => onApplyScene(undefined, scene.id, scene.groupId)}
-                className="border border-slate-800 rounded-lg px-4 py-3 text-left hover:border-circadian-amber/70"
+                className="rounded-lg border border-slate-800 px-4 py-3 text-left transition hover:border-circadian-amber/70"
               >
                 <h4 className="font-semibold">{scene.name}</h4>
                 <p className="text-xs text-slate-500">Group {scene.groupId ?? 'all lights'}</p>
@@ -753,6 +940,77 @@ export default function App() {
     }
   }, [loadStatus]);
 
+  const handleCreateCustomScene = useCallback<CustomSceneCreateHandler>(
+    async (scene) => {
+      setPending(true);
+      setInfo(null);
+      try {
+        const created = await apiRequest<StatusPayload['customScenes'][number]>('/api/custom-scenes', {
+          method: 'POST',
+          body: JSON.stringify(scene),
+        });
+        setStatus((current) =>
+          current ? { ...current, customScenes: [...current.customScenes, created] } : current,
+        );
+        setInfo('Custom scene saved');
+        return created;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        throw err;
+      } finally {
+        setPending(false);
+      }
+    },
+    [],
+  );
+
+  const handleApplyCustomScene = useCallback<CustomSceneApplyHandler>(
+    async (id) => {
+      setPending(true);
+      setInfo(null);
+      try {
+        const response = await apiRequest<{ ok: boolean; lights: LightStateSummary[] }>(
+          `/api/custom-scenes/${id}/apply`,
+          { method: 'POST' },
+        );
+        setStatus((current) =>
+          current
+            ? { ...current, lights: response.lights, activeEffect: null }
+            : current,
+        );
+        setInfo('Custom scene applied');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        throw err;
+      } finally {
+        setPending(false);
+      }
+    },
+    [],
+  );
+
+  const handleDeleteCustomScene = useCallback<CustomSceneDeleteHandler>(
+    async (id) => {
+      setPending(true);
+      setInfo(null);
+      try {
+        await apiRequest(`/api/custom-scenes/${id}`, { method: 'DELETE' });
+        setStatus((current) =>
+          current
+            ? { ...current, customScenes: current.customScenes.filter((scene) => scene.id !== id) }
+            : current,
+        );
+        setInfo('Custom scene removed');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        throw err;
+      } finally {
+        setPending(false);
+      }
+    },
+    [],
+  );
+
   const handleStartEffect = useCallback<EffectHandler>(async (effectId) => {
     setPending(true);
     setInfo(null);
@@ -939,7 +1197,13 @@ export default function App() {
               <ScheduleTab schedules={status.schedules} onSave={handleSaveSchedules} />
             )}
             {activeTab === 'scenes' && (
-              <ScenesTab status={status} onApplyScene={handleApplyScene} />
+              <ScenesTab
+                status={status}
+                onApplyScene={handleApplyScene}
+                onCreateCustomScene={handleCreateCustomScene}
+                onApplyCustomScene={handleApplyCustomScene}
+                onDeleteCustomScene={handleDeleteCustomScene}
+              />
             )}
             {activeTab === 'settings' && (
               <SettingsTab

@@ -12,7 +12,9 @@
     "build:server": "tsc --project tsconfig.json",
     "start": "node dist/server/index.js",
     "lint": "tsc --noEmit",
-    "test": "npm run lint && npm run build"
+    "test": "npm run lint && npm run test:unit && npm run build",
+    "test:unit": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "better-sqlite3": "^11.5.0",
@@ -39,6 +41,12 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "vitest": "^1.6.0",
+    "@testing-library/react": "^14.2.2",
+    "@testing-library/jest-dom": "^6.4.2",
+    "jsdom": "^24.1.0",
+    "supertest": "^6.3.4",
+    "@types/supertest": "^2.0.16"
   }
 }
