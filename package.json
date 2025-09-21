@@ -11,7 +11,8 @@
     "build:client": "vite build",
     "build:server": "tsc --project tsconfig.json",
     "start": "node dist/server/index.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "npm run lint && npm run build"
   },
   "dependencies": {
     "better-sqlite3": "^11.5.0",
