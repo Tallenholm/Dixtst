@@ -1,7 +1,7 @@
 import { formatISO } from 'date-fns';
-import type { CircadianPhase, LocationInfo, ScheduleEntry } from '@shared/types';
+import type { CircadianPhase, CircadianTimelineEntry, LocationInfo, ScheduleEntry } from '@shared/types';
 import { CIRCADIAN_PHASE_SETTINGS } from '@shared/constants';
-import { getCurrentPhase, getNextPhaseChange } from '../utils/sun';
+import { getCurrentPhase, getNextPhaseChange, getSunTimes } from '../utils/sun';
 import { HueBridgeService } from './hue';
 import { Storage } from '../storage';
 
@@ -31,18 +31,24 @@ export class CircadianScheduler {
   private readonly scheduleRuns = new Map<string, ScheduleRunState>();
   private location?: LocationInfo;
   private schedules: ScheduleEntry[] = [];
+  private timeline: CircadianTimelineEntry[] = [];
 
   constructor(
     private readonly hue: HueBridgeService,
     private readonly storage: Storage,
     private readonly onPhaseChange?: (phase: CircadianPhase, nextAt?: Date) => void,
+    private readonly onTimelineChange?: (timeline: CircadianTimelineEntry[]) => void,
   ) {
     this.location = storage.getLocation();
     this.schedules = storage.getSchedules();
+    if (this.location) {
+      this.recomputeTimeline();
+    }
   }
 
   start() {
     if (this.interval) return;
+    this.recomputeTimeline();
     this.tick(true).catch((error) => console.warn('Initial circadian tick failed', error));
     this.interval = setInterval(() => {
       this.tick().catch((error) => console.warn('Circadian tick failed', error));
@@ -68,9 +74,14 @@ export class CircadianScheduler {
     return this.schedules;
   }
 
+  getTimeline(): CircadianTimelineEntry[] {
+    return this.timeline;
+  }
+
   updateLocation(location: LocationInfo) {
     this.location = location;
     this.storage.saveLocation(location);
+    this.recomputeTimeline();
     this.tick(true).catch((error) => console.warn('Failed to apply phase after location update', error));
   }
 
@@ -81,8 +92,9 @@ export class CircadianScheduler {
   }
 
   private async tick(forcePhase = false) {
-    if (!this.location) return;
     const now = new Date();
+    this.recomputeTimeline(now);
+    if (!this.location) return;
     const phase = getCurrentPhase(this.location.latitude, this.location.longitude, now);
     if (forcePhase || phase !== this.currentPhase) {
       this.currentPhase = phase;
@@ -98,6 +110,20 @@ export class CircadianScheduler {
       this.onPhaseChange?.(phase, this.nextPhaseAt);
     }
     await this.processSchedules(now);
+  }
+
+  private recomputeTimeline(now = new Date()) {
+    if (!this.location) {
+      if (this.timeline.length) {
+        this.timeline = [];
+        this.onTimelineChange?.([]);
+      }
+      return;
+    }
+
+    const segments = buildDailyTimeline(this.location, now);
+    this.timeline = segments;
+    this.onTimelineChange?.(segments);
   }
 
   private async processSchedules(now: Date) {
@@ -142,4 +168,37 @@ export class CircadianScheduler {
       .applyStateToAllLights({ on: true, bri: brightness, ct: colorTemp })
       .catch((error) => console.warn(`Failed to apply sleep schedule ${schedule.id}`, error));
   }
+}
+
+function buildDailyTimeline(location: LocationInfo, reference: Date): CircadianTimelineEntry[] {
+  const { latitude, longitude } = location;
+  const startOfDay = new Date(reference);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setDate(endOfDay.getDate() + 1);
+
+  const times = getSunTimes(latitude, longitude, reference);
+
+  const segments: CircadianTimelineEntry[] = [];
+  const pushSegment = (phase: CircadianPhase, start: Date, end: Date) => {
+    const setting = CIRCADIAN_PHASE_SETTINGS[phase];
+    if (!setting) return;
+    const clampedStart = new Date(Math.max(start.getTime(), startOfDay.getTime()));
+    const clampedEnd = new Date(Math.min(end.getTime(), endOfDay.getTime()));
+    if (clampedEnd.getTime() <= clampedStart.getTime()) return;
+    segments.push({
+      phase,
+      start: clampedStart.toISOString(),
+      end: clampedEnd.toISOString(),
+      brightness: setting.brightness,
+      colorTemp: setting.colorTemp,
+    });
+  };
+
+  pushSegment('night', startOfDay, times.civilTwilightBegin);
+  pushSegment('dawn', times.civilTwilightBegin, times.sunrise);
+  pushSegment('day', times.sunrise, times.civilTwilightEnd);
+  pushSegment('dusk', times.civilTwilightEnd, endOfDay);
+
+  return segments;
 }

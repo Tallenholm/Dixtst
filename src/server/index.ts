@@ -27,13 +27,22 @@ app.use(express.json({ limit: '1mb' }));
 const storage = new Storage(process.env.HUE_DB_PATH);
 const hue = new HueBridgeService(storage);
 const status = new StatusService(hue, storage);
-const scheduler = new CircadianScheduler(hue, storage, (phase, next) => {
-  status.setPhase(phase, next);
-});
+const scheduler = new CircadianScheduler(
+  hue,
+  storage,
+  (phase, next) => {
+    status.setPhase(phase, next);
+  },
+  (timeline) => {
+    status.setCircadianTimeline(timeline);
+  },
+);
 
 status.setPhase(scheduler.getPhase().phase, scheduler.getPhase().next);
 status.setLocation(storage.getLocation());
 status.setSchedules(storage.getSchedules());
+status.setCustomScenes(storage.getCustomScenes());
+status.setCircadianTimeline(scheduler.getTimeline());
 
 hue.setEffectListener((effect) => {
   status.setActiveEffect(effect);

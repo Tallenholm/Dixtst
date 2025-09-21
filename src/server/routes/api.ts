@@ -1,17 +1,19 @@
 import { Router } from 'express';
+import { randomUUID } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
 import {
   PRESET_SCENES,
   LIGHT_EFFECTS,
   DEFAULT_LOCATION_DETECT_URL,
 } from '@shared/constants';
-import type { ScheduleEntry } from '@shared/types';
+import type { CustomScene, ScheduleEntry } from '@shared/types';
 import { HueBridgeService } from '../services/hue';
 import { CircadianScheduler } from '../services/circadian';
 import { StatusService } from '../services/status';
 import { Storage } from '../storage';
 
 const LOCATION_ENDPOINT = process.env.LOCATION_ENDPOINT ?? DEFAULT_LOCATION_DETECT_URL;
+const MAX_CUSTOM_SCENES = 32;
 
 type Deps = {
   hue: HueBridgeService;
@@ -34,6 +36,45 @@ function isScheduleEntry(value: any): value is ScheduleEntry {
   if (typeof value.enabled !== 'boolean') return false;
   if (value.days && (!Array.isArray(value.days) || value.days.some((d: any) => typeof d !== 'number'))) return false;
   return true;
+}
+
+type CustomSceneInput = Omit<CustomScene, 'id' | 'createdAt'>;
+
+function parseCustomScenePayload(body: any): CustomSceneInput | null {
+  if (!body || typeof body !== 'object') return null;
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (!name) return null;
+  const brightness = Number(body.brightness);
+  if (!Number.isFinite(brightness)) return null;
+  const normalizedBrightness = Math.round(Math.min(Math.max(brightness, 1), 254));
+
+  const description = typeof body.description === 'string' ? body.description.trim() : undefined;
+
+  const hasColorTemp = body.colorTemp !== undefined && body.colorTemp !== null;
+  const colorTempValue = hasColorTemp ? Number(body.colorTemp) : undefined;
+  const normalizedColorTemp =
+    hasColorTemp && Number.isFinite(colorTempValue)
+      ? Math.round(Math.min(Math.max(colorTempValue as number, 153), 500))
+      : undefined;
+
+  const hasHueOrSat = body.hue !== undefined || body.sat !== undefined;
+  const hueValue = body.hue !== undefined ? Number(body.hue) : undefined;
+  const satValue = body.sat !== undefined ? Number(body.sat) : undefined;
+  const validHue = hueValue !== undefined && Number.isFinite(hueValue) && hueValue >= 0 && hueValue <= 65535;
+  const validSat = satValue !== undefined && Number.isFinite(satValue) && satValue >= 0 && satValue <= 254;
+
+  if (hasHueOrSat && (!validHue || !validSat)) return null;
+
+  if (!normalizedColorTemp && !validHue) return null;
+
+  return {
+    name: name.slice(0, 60),
+    description: description ? description.slice(0, 160) : undefined,
+    brightness: normalizedBrightness,
+    colorTemp: normalizedColorTemp,
+    hue: validHue ? Math.round(hueValue as number) : undefined,
+    sat: validSat ? Math.round(satValue as number) : undefined,
+  };
 }
 
 export function createApiRouter({ hue, scheduler, status, storage }: Deps) {
@@ -101,6 +142,75 @@ export function createApiRouter({ hue, scheduler, status, storage }: Deps) {
         return;
       }
       res.status(400).json({ error: 'scene_required', message: 'presetId or sceneId must be provided' });
+    }),
+  );
+
+  router.get('/custom-scenes', (_req, res) => {
+    res.json({ scenes: storage.getCustomScenes() });
+  });
+
+  router.post(
+    '/custom-scenes',
+    asyncHandler(async (req, res) => {
+      const payload = parseCustomScenePayload(req.body);
+      if (!payload) {
+        res.status(400).json({ error: 'invalid_scene', message: 'Invalid custom scene payload' });
+        return;
+      }
+      const scenes = storage.getCustomScenes();
+      if (scenes.length >= MAX_CUSTOM_SCENES) {
+        res.status(400).json({ error: 'scene_limit', message: 'Maximum number of custom scenes reached' });
+        return;
+      }
+      const scene: CustomScene = {
+        id: randomUUID(),
+        createdAt: new Date().toISOString(),
+        ...payload,
+      };
+      const nextScenes = [...scenes, scene];
+      storage.saveCustomScenes(nextScenes);
+      status.setCustomScenes(nextScenes);
+      res.status(201).json(scene);
+    }),
+  );
+
+  router.delete(
+    '/custom-scenes/:id',
+    asyncHandler(async (req, res) => {
+      const id = req.params.id;
+      const scenes = storage.getCustomScenes();
+      const index = scenes.findIndex((scene) => scene.id === id);
+      if (index === -1) {
+        res.status(404).json({ error: 'scene_not_found', message: `Unknown custom scene ${id}` });
+        return;
+      }
+      const nextScenes = [...scenes.slice(0, index), ...scenes.slice(index + 1)];
+      storage.saveCustomScenes(nextScenes);
+      status.setCustomScenes(nextScenes);
+      res.json({ ok: true });
+    }),
+  );
+
+  router.post(
+    '/custom-scenes/:id/apply',
+    asyncHandler(async (req, res) => {
+      const id = req.params.id;
+      const scene = storage.getCustomScenes().find((entry) => entry.id === id);
+      if (!scene) {
+        res.status(404).json({ error: 'scene_not_found', message: `Unknown custom scene ${id}` });
+        return;
+      }
+      status.setActiveEffect(null);
+      await hue.stopEffect().catch(() => undefined);
+      await hue.applyStateToAllLights({
+        on: true,
+        bri: scene.brightness,
+        ct: scene.colorTemp,
+        hue: scene.hue,
+        sat: scene.sat,
+      });
+      const lights = await status.getLights(true);
+      res.json({ ok: true, lights });
     }),
   );
 

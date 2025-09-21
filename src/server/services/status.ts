@@ -1,6 +1,8 @@
 import type {
   BridgeState,
   CircadianPhase,
+  CircadianTimelineEntry,
+  CustomScene,
   GroupSummary,
   LightStateSummary,
   LocationInfo,
@@ -23,11 +25,14 @@ export class StatusService {
   private nextPhaseAt?: Date;
   private location?: LocationInfo;
   private schedules: ScheduleEntry[] = [];
+  private customScenes: CustomScene[] = [];
+  private timeline: CircadianTimelineEntry[] = [];
   private activeEffect: string | null;
 
   constructor(private readonly hue: HueBridgeService, private readonly storage: Storage) {
     this.location = storage.getLocation();
     this.schedules = storage.getSchedules();
+    this.customScenes = storage.getCustomScenes();
     this.activeEffect = storage.getActiveEffect()?.id ?? null;
   }
 
@@ -42,6 +47,14 @@ export class StatusService {
 
   setSchedules(schedules: ScheduleEntry[]) {
     this.schedules = schedules;
+  }
+
+  setCustomScenes(scenes: CustomScene[]) {
+    this.customScenes = scenes;
+  }
+
+  setCircadianTimeline(timeline: CircadianTimelineEntry[]) {
+    this.timeline = timeline;
   }
 
   setActiveEffect(effect: string | null) {
@@ -133,6 +146,8 @@ export class StatusService {
       effects: LIGHT_EFFECTS,
       presetScenes: PRESET_SCENES,
       hueScenes,
+      customScenes: this.customScenes,
+      circadianTimeline: this.timeline,
       updatedAt: new Date().toISOString(),
     };
   }
