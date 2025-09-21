@@ -1,6 +1,6 @@
-# Dixtst Circadian Hue — Home Edition
+# Circadian Hue — Home Edition
 
-The Home Edition of Dixtst Circadian Hue is a streamlined, single-service application for managing Philips Hue lighting with circadian automation. It keeps the original web dashboard, scheduling tools, lighting effects, and scene management while removing enterprise and mobile features so the system can run reliably on home hardware such as a Raspberry Pi or NAS.
+The Home Edition of Circadian Hue is a streamlined, single-service application for managing Philips Hue lighting with circadian automation. It keeps the original web dashboard, scheduling tools, lighting effects, and scene management while removing enterprise and mobile features so the system can run reliably on home hardware such as a Raspberry Pi or NAS.
 
 ## Highlights
 
