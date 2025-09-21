@@ -46,7 +46,7 @@ export class Storage {
         updatedAt: new Date(row.updated_at).toISOString(),
       };
     } catch (error) {
-      throw new Error(`Failed to parse stored value for ${key}: ${String(error)}`);
+      throw new Error(`Failed to parse stored value for key "${key}": ${String(error)}`);
     }
   }
 
