@@ -120,4 +120,7 @@ All responses are JSON. Requests that mutate data accept JSON payloads and retur
 
 ## License
 
-MIT License – see [LICENSE](LICENSE) for details.
+Circadian Hue — Home Edition is dual-licensed under the MIT License and the
+Circadian Hue Commercial License. Review [LICENSE](LICENSE) for the MIT terms
+or [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) to obtain commercial usage
+rights.
