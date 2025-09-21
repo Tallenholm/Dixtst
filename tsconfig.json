@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmitOnError": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@client/*": ["src/client/*"],
+      "@server/*": ["src/server/*"],
+      "@shared/*": ["src/shared/*"],
+      "@config/*": ["src/config/*"]
+    }
+  },
+  "include": ["src/**/*", "vite.config.ts", "tailwind.config.ts", "postcss.config.js"],
+  "exclude": ["dist", "node_modules"]
+}
