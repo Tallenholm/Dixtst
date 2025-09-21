@@ -1,0 +1,16 @@
+{
+  "warm": { "ct": 400 },
+  "white": { "ct": 350 },
+  "cool": { "ct": 220 },
+  "red": { "hue": 0, "sat": 254 },
+  "orange": { "hue": 5461, "sat": 220 },
+  "yellow": { "hue": 10922, "sat": 200 },
+  "green": { "hue": 25500, "sat": 200 },
+  "cyan": { "hue": 35000, "sat": 180 },
+  "teal": { "hue": 33000, "sat": 150 },
+  "blue": { "hue": 43690, "sat": 240 },
+  "purple": { "hue": 50000, "sat": 240 },
+  "pink": { "hue": 56100, "sat": 210 },
+  "amber": { "ct": 370 },
+  "warmwhite": { "ct": 380 }
+}

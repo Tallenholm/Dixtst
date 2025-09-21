@@ -1,36 +1,43 @@
 {
-  "name": "circadian-hue-monorepo",
-  "version": "1.1.0",
-  "private": true,
+  "name": "circadian-hue-home",
+  "version": "2.0.0",
   "type": "module",
-  "license": "MIT",
+  "private": true,
   "scripts": {
-    "dev": "cd circadian-hue && npm run dev",
-    "build": "cd circadian-hue && npm run build",
-    "preview": "cd circadian-hue && npm run preview",
-    "test": "tsx --test server/__tests__/*.ts circadian-hue/mobile/test-mobile.js",
-    "setup-env": "node scripts/setup-env.js",
-    "generate-schemas": "tsx scripts/generate-schemas.ts",
-    "lint": "eslint \"{server,circadian-hue/server}/**/*.{ts,js}\"",
-    "format": "prettier --write \"{server,circadian-hue/server}/**/*.{ts,js,json,md}\""
-  },
-  "devDependencies": {
-    "npm-run-all": "^4.1.5",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.20.4",
-    "typescript": "^5.6.3",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "prettier": "^3.2.5",
-    "@types/suncalc": "^1.9.2"
+    "dev": "concurrently -k -n server,client \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "tsx watch src/server/index.ts",
+    "dev:client": "vite",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "tsc --project tsconfig.json",
+    "start": "node dist/server/index.js",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "dotenv": "^16.6.1",
-    "lowdb": "^7.0.1",
-    "node-hue-api": "^5.0.0-beta.16",
-    "pino": "^9.8.0",
-    "suncalc": "^1.9.0"
+    "better-sqlite3": "^11.5.0",
+    "cors": "^2.8.5",
+    "date-fns": "^3.6.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "node-hue-api": "^4.0.11",
+    "suncalc": "^1.9.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
   }
 }
