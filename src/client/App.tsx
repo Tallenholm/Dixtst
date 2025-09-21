@@ -1144,7 +1144,7 @@ export default function App() {
       <header className="border-b border-slate-800 bg-slate-900/60">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold">Dixtst Circadian Hue · Home Edition</h1>
+            <h1 className="text-3xl font-semibold">Circadian Hue · Home Edition</h1>
             <p className="text-sm text-slate-400">
               Manage Philips Hue lights with circadian automation optimised for single-house deployments.
             </p>
