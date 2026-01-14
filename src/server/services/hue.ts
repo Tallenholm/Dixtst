@@ -37,6 +37,7 @@ export class HueBridgeService {
   private effectTimeouts: NodeJS.Timeout[] = [];
   private currentEffect: string | null = null;
   private effectListener?: (effect: string | null) => void;
+  private _api: any = null;
 
   constructor(private readonly storage: Storage) {}
 
@@ -69,9 +70,11 @@ export class HueBridgeService {
   }
 
   private async getApi() {
+    if (this._api) return this._api;
     const bridge = this.storage.getBridge();
     if (!bridge) throw new Error('bridge_not_configured');
-    return v3.api.createLocal(bridge.ip).connect(bridge.username);
+    this._api = await v3.api.createLocal(bridge.ip).connect(bridge.username);
+    return this._api;
   }
 
   async discover(): Promise<string[]> {
@@ -84,12 +87,18 @@ export class HueBridgeService {
     try {
       const user = await unauth.users.createUser('circadian-hue', 'home-server');
       this.storage.saveBridge({ ip, username: user.username });
+      this._api = await v3.api.createLocal(ip).connect(user.username);
     } catch (error: any) {
       if (error.getHueErrorType && error.getHueErrorType() === 101) {
         throw new Error('link_button_not_pressed');
       }
       throw error;
     }
+  }
+
+  forgetBridge(): void {
+    this.storage.clearBridge();
+    this._api = null;
   }
 
   async listGroups(): Promise<GroupSummary[]> {

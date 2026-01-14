@@ -408,7 +408,7 @@ export function createApiRouter({ hue, scheduler, status, storage }: Deps) {
   router.post(
     '/bridge/clear',
     asyncHandler(async (_req, res) => {
-      storage.clearBridge();
+      hue.forgetBridge();
       res.json({ ok: true });
     }),
   );
