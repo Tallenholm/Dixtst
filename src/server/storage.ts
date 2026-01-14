@@ -11,6 +11,10 @@ export interface SettingRecord<T> {
 
 export class Storage {
   private db: Database.Database;
+  private stmtGetSetting: Database.Statement;
+  private stmtListSettings: Database.Statement;
+  private stmtSetSetting: Database.Statement;
+  private stmtDeleteSetting: Database.Statement;
 
   constructor(dbPath = process.env.HUE_DB_PATH ?? path.resolve(process.cwd(), 'data/circadian-hue.db')) {
     const dir = path.dirname(dbPath);
@@ -20,12 +24,18 @@ export class Storage {
     this.db.exec(
       `CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
     );
+
+    this.stmtGetSetting = this.db.prepare('SELECT key, value, updated_at FROM settings WHERE key = ? LIMIT 1');
+    this.stmtListSettings = this.db.prepare('SELECT key, value, updated_at FROM settings');
+    this.stmtSetSetting = this.db.prepare(
+      `INSERT INTO settings(key, value, updated_at) VALUES (@key, @value, @now)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    );
+    this.stmtDeleteSetting = this.db.prepare('DELETE FROM settings WHERE key = ?');
   }
 
   listSettings(): SettingRecord<unknown>[] {
-    const rows = this.db
-      .prepare('SELECT key, value, updated_at FROM settings')
-      .all() as { key: string; value: string; updated_at: number }[];
+    const rows = this.stmtListSettings.all() as { key: string; value: string; updated_at: number }[];
     return rows.map((row) => ({
       key: row.key,
       value: JSON.parse(row.value),
@@ -34,9 +44,7 @@ export class Storage {
   }
 
   getSetting<T>(key: string): SettingRecord<T> | undefined {
-    const row = this.db
-      .prepare('SELECT key, value, updated_at FROM settings WHERE key = ? LIMIT 1')
-      .get(key) as { key: string; value: string; updated_at: number } | undefined;
+    const row = this.stmtGetSetting.get(key) as { key: string; value: string; updated_at: number } | undefined;
     if (!row) return undefined;
     try {
       const value = JSON.parse(row.value) as T;
@@ -53,17 +61,12 @@ export class Storage {
   setSetting<T>(key: string, value: T): SettingRecord<T> {
     const now = Date.now();
     const payload = JSON.stringify(value);
-    this.db
-      .prepare(
-        `INSERT INTO settings(key, value, updated_at) VALUES (@key, @value, @now)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
-      )
-      .run({ key, value: payload, now });
+    this.stmtSetSetting.run({ key, value: payload, now });
     return { key, value, updatedAt: new Date(now).toISOString() };
   }
 
   deleteSetting(key: string): void {
-    this.db.prepare('DELETE FROM settings WHERE key = ?').run(key);
+    this.stmtDeleteSetting.run(key);
   }
 
   getSchedules(): ScheduleEntry[] {
