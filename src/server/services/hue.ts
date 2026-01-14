@@ -231,18 +231,27 @@ export class HueBridgeService {
     let direction = -1;
     await this.applyStateToAllLights({ on: true, bri: level, ...baseColor });
     const step = Math.max(2, Math.round(8 / speed));
+    let running = false;
     this.trackInterval(
-      setInterval(() => {
-        level += direction * step * 3;
-        if (level <= 20) {
-          level = 20;
-          direction = 1;
+      setInterval(async () => {
+        if (running) return;
+        running = true;
+        try {
+          level += direction * step * 3;
+          if (level <= 20) {
+            level = 20;
+            direction = 1;
+          }
+          if (level >= 240) {
+            level = 240;
+            direction = -1;
+          }
+          await this.applyStateToAllLights({ on: true, bri: level, ...baseColor });
+        } catch {
+          // ignore
+        } finally {
+          running = false;
         }
-        if (level >= 240) {
-          level = 240;
-          direction = -1;
-        }
-        this.applyStateToAllLights({ on: true, bri: level, ...baseColor }).catch(() => undefined);
       }, Math.max(500, Math.round(1200 / speed))),
     );
   }
