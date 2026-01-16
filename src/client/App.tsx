@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { LightStateSummary, ScheduleEntry, StatusPayload } from '@shared/types';
 import { formatDateTime, formatTime, intensityLabel, phaseLabel } from './utils/formatters';
 import CircadianTimeline from './components/CircadianTimeline';
+import { usePolling } from './hooks/usePolling';
 
 const POLL_INTERVAL = Number(import.meta.env.VITE_STATUS_INTERVAL ?? 5000);
 
@@ -866,11 +867,11 @@ export default function App() {
 
   useEffect(() => {
     loadStatus(true);
-    const timer = setInterval(() => {
-      loadStatus(false);
-    }, POLL_INTERVAL);
-    return () => clearInterval(timer);
   }, [loadStatus]);
+
+  usePolling(() => {
+    loadStatus(false);
+  }, POLL_INTERVAL);
 
   useEffect(() => {
     localStorage.setItem('circadianAccessToken', token.trim());
