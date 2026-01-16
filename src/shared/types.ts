@@ -97,19 +97,24 @@ export interface BridgeState {
   ip?: string;
 }
 
-export interface StatusPayload {
-  phase: CircadianPhase;
-  nextPhaseAt?: string;
-  lights: LightStateSummary[];
-  groups: GroupSummary[];
+export interface SystemConfig {
   schedules: ScheduleEntry[];
   location?: LocationInfo;
   bridge: BridgeState;
-  activeEffect: string | null;
   effects: LightEffectDefinition[];
   presetScenes: PresetScene[];
   hueScenes: HueSceneSummary[];
   customScenes: CustomScene[];
   circadianTimeline: CircadianTimelineEntry[];
+}
+
+export interface SystemStatus {
+  phase: CircadianPhase;
+  nextPhaseAt?: string;
+  lights: LightStateSummary[];
+  groups: GroupSummary[];
+  activeEffect: string | null;
   updatedAt: string;
 }
+
+export type StatusPayload = SystemConfig & SystemStatus;

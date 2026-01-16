@@ -8,6 +8,8 @@ import type {
   LocationInfo,
   ScheduleEntry,
   StatusPayload,
+  SystemConfig,
+  SystemStatus,
 } from '@shared/types';
 import { LIGHT_EFFECTS, PRESET_SCENES } from '@shared/constants';
 import { HueBridgeService } from './hue';
@@ -128,26 +130,28 @@ export class StatusService {
       : { configured: false };
   }
 
-  async getStatus(): Promise<StatusPayload> {
-    const [lights, groups, hueScenes] = await Promise.all([
-      this.getLights(),
-      this.getGroups(),
-      this.getHueScenes(),
-    ]);
+  async getConfig(): Promise<SystemConfig> {
+    const hueScenes = await this.getHueScenes();
     return {
-      phase: this.currentPhase,
-      nextPhaseAt: this.nextPhaseAt?.toISOString(),
-      lights,
-      groups,
       schedules: this.schedules,
       location: this.location,
       bridge: this.getBridgeState(),
-      activeEffect: this.activeEffect,
       effects: LIGHT_EFFECTS,
       presetScenes: PRESET_SCENES,
       hueScenes,
       customScenes: this.customScenes,
       circadianTimeline: this.timeline,
+    };
+  }
+
+  async getPollStatus(): Promise<SystemStatus> {
+    const [lights, groups] = await Promise.all([this.getLights(), this.getGroups()]);
+    return {
+      phase: this.currentPhase,
+      nextPhaseAt: this.nextPhaseAt?.toISOString(),
+      lights,
+      groups,
+      activeEffect: this.activeEffect,
       updatedAt: new Date().toISOString(),
     };
   }

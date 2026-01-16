@@ -81,9 +81,17 @@ export function createApiRouter({ hue, scheduler, status, storage }: Deps) {
   const router = Router();
 
   router.get(
+    '/config',
+    asyncHandler(async (_req, res) => {
+      const payload = await status.getConfig();
+      res.json(payload);
+    }),
+  );
+
+  router.get(
     '/status',
     asyncHandler(async (_req, res) => {
-      const payload = await status.getStatus();
+      const payload = await status.getPollStatus();
       res.json(payload);
     }),
   );
