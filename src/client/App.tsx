@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { LightStateSummary, ScheduleEntry, StatusPayload } from '@shared/types';
+import type {
+  LightStateSummary,
+  ScheduleEntry,
+  StatusPayload,
+  SystemConfig,
+  SystemStatus,
+} from '@shared/types';
 import { formatDateTime, formatTime, intensityLabel, phaseLabel } from './utils/formatters';
 import CircadianTimeline from './components/CircadianTimeline';
 
@@ -842,21 +848,40 @@ export default function App() {
   const [bridgeDiscoveries, setBridgeDiscoveries] = useState<string[]>([]);
   const [token, setToken] = useState(localStorage.getItem('circadianAccessToken') ?? '');
 
-  const loadStatus = useCallback(
-    async (showSpinner = false) => {
-      if (showSpinner) setLoading(true);
-      try {
-        const data = await apiRequest<StatusPayload>('/api/status');
-        setStatus(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        if (showSpinner) setLoading(false);
-      }
-    },
-    [],
-  );
+  const loadConfig = useCallback(async () => {
+    try {
+      const config = await apiRequest<SystemConfig>('/api/config');
+      setStatus((current) => (current ? { ...current, ...config } : null));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
+  const loadStatus = useCallback(async () => {
+    try {
+      const data = await apiRequest<SystemStatus>('/api/status');
+      setStatus((current) => (current ? { ...current, ...data } : null));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
+  const init = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [config, statusData] = await Promise.all([
+        apiRequest<SystemConfig>('/api/config'),
+        apiRequest<SystemStatus>('/api/status'),
+      ]);
+      setStatus({ ...config, ...statusData });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!info) return;
@@ -865,12 +890,12 @@ export default function App() {
   }, [info]);
 
   useEffect(() => {
-    loadStatus(true);
+    init();
     const timer = setInterval(() => {
-      loadStatus(false);
+      loadStatus();
     }, POLL_INTERVAL);
     return () => clearInterval(timer);
-  }, [loadStatus]);
+  }, [init, loadStatus]);
 
   useEffect(() => {
     localStorage.setItem('circadianAccessToken', token.trim());
@@ -923,34 +948,42 @@ export default function App() {
     }
   }, []);
 
-  const handleApplyScene = useCallback<SceneApplyHandler>(async (presetId, sceneId, roomId) => {
-    setPending(true);
-    setInfo(null);
-    try {
-      await apiRequest('/api/lights/apply-scene', {
-        method: 'POST',
-        body: JSON.stringify({ presetId, sceneId, roomId }),
-      });
-      await loadStatus(false);
-      setInfo('Scene applied');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  }, [loadStatus]);
+  const handleApplyScene = useCallback<SceneApplyHandler>(
+    async (presetId, sceneId, roomId) => {
+      setPending(true);
+      setInfo(null);
+      try {
+        await apiRequest('/api/lights/apply-scene', {
+          method: 'POST',
+          body: JSON.stringify({ presetId, sceneId, roomId }),
+        });
+        await loadStatus();
+        setInfo('Scene applied');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setPending(false);
+      }
+    },
+    [loadStatus],
+  );
 
   const handleCreateCustomScene = useCallback<CustomSceneCreateHandler>(
     async (scene) => {
       setPending(true);
       setInfo(null);
       try {
-        const created = await apiRequest<StatusPayload['customScenes'][number]>('/api/custom-scenes', {
-          method: 'POST',
-          body: JSON.stringify(scene),
-        });
+        const created = await apiRequest<StatusPayload['customScenes'][number]>(
+          '/api/custom-scenes',
+          {
+            method: 'POST',
+            body: JSON.stringify(scene),
+          },
+        );
         setStatus((current) =>
-          current ? { ...current, customScenes: [...current.customScenes, created] } : current,
+          current
+            ? { ...current, customScenes: [...current.customScenes, created] }
+            : current,
         );
         setInfo('Custom scene saved');
         return created;
@@ -1011,29 +1044,32 @@ export default function App() {
     [],
   );
 
-  const handleStartEffect = useCallback<EffectHandler>(async (effectId) => {
-    setPending(true);
-    setInfo(null);
-    try {
-      await apiRequest('/api/effects/start', {
-        method: 'POST',
-        body: JSON.stringify({ effectId }),
-      });
-      await loadStatus(false);
-      setInfo(`Effect ${effectId} started`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  }, [loadStatus]);
+  const handleStartEffect = useCallback<EffectHandler>(
+    async (effectId) => {
+      setPending(true);
+      setInfo(null);
+      try {
+        await apiRequest('/api/effects/start', {
+          method: 'POST',
+          body: JSON.stringify({ effectId }),
+        });
+        await loadStatus();
+        setInfo(`Effect ${effectId} started`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setPending(false);
+      }
+    },
+    [loadStatus],
+  );
 
   const handleStopEffect = useCallback(async () => {
     setPending(true);
     setInfo(null);
     try {
       await apiRequest('/api/effects/stop', { method: 'POST' });
-      await loadStatus(false);
+      await loadStatus();
       setInfo('Effect stopped');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -1042,56 +1078,67 @@ export default function App() {
     }
   }, [loadStatus]);
 
-  const handleSaveSchedules = useCallback<ScheduleSaveHandler>(async (entries) => {
-    setPending(true);
-    setInfo(null);
-    try {
-      await apiRequest('/api/schedule', {
-        method: 'PUT',
-        body: JSON.stringify({ schedules: entries }),
-      });
-      await loadStatus(false);
-      setInfo('Schedules updated');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  }, [loadStatus]);
+  const handleSaveSchedules = useCallback<ScheduleSaveHandler>(
+    async (entries) => {
+      setPending(true);
+      setInfo(null);
+      try {
+        await apiRequest('/api/schedule', {
+          method: 'PUT',
+          body: JSON.stringify({ schedules: entries }),
+        });
+        await loadConfig();
+        setInfo('Schedules updated');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setPending(false);
+      }
+    },
+    [loadConfig],
+  );
 
   const handleDetectLocation = useCallback(async () => {
     setPending(true);
     setInfo(null);
     try {
       await apiRequest('/api/location/detect', { method: 'POST' });
-      await loadStatus(false);
+      await loadConfig();
       setInfo('Location detected automatically');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setPending(false);
     }
-  }, [loadStatus]);
+  }, [loadConfig]);
 
-  const handleUpdateLocation = useCallback<LocationHandler>(async (payload) => {
-    setPending(true);
-    setInfo(null);
-    try {
-      await apiRequest('/api/location', { method: 'POST', body: JSON.stringify(payload) });
-      await loadStatus(false);
-      setInfo('Location saved');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  }, [loadStatus]);
+  const handleUpdateLocation = useCallback<LocationHandler>(
+    async (payload) => {
+      setPending(true);
+      setInfo(null);
+      try {
+        await apiRequest('/api/location', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        await loadConfig();
+        setInfo('Location saved');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setPending(false);
+      }
+    },
+    [loadConfig],
+  );
 
   const handleDiscoverBridges = useCallback(async () => {
     setPending(true);
     setInfo(null);
     try {
-      const response = await apiRequest<{ bridges: { ip: string }[] }>('/api/bridge/discover');
+      const response = await apiRequest<{ bridges: { ip: string }[] }>(
+        '/api/bridge/discover',
+      );
       setBridgeDiscoveries(response.bridges.map((bridge) => bridge.ip));
       setInfo(`Found ${response.bridges.length} bridge(s)`);
     } catch (err) {
@@ -1101,33 +1148,39 @@ export default function App() {
     }
   }, []);
 
-  const handlePairBridge = useCallback<BridgeHandler>(async (ip) => {
-    setPending(true);
-    setInfo(null);
-    try {
-      await apiRequest('/api/bridge/pair', { method: 'POST', body: JSON.stringify({ ip }) });
-      await loadStatus(false);
-      setInfo(`Bridge paired at ${ip}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  }, [loadStatus]);
+  const handlePairBridge = useCallback<BridgeHandler>(
+    async (ip) => {
+      setPending(true);
+      setInfo(null);
+      try {
+        await apiRequest('/api/bridge/pair', {
+          method: 'POST',
+          body: JSON.stringify({ ip }),
+        });
+        await loadConfig();
+        setInfo(`Bridge paired at ${ip}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setPending(false);
+      }
+    },
+    [loadConfig],
+  );
 
   const handleClearBridge = useCallback(async () => {
     setPending(true);
     setInfo(null);
     try {
       await apiRequest('/api/bridge/clear', { method: 'POST' });
-      await loadStatus(false);
+      await loadConfig();
       setInfo('Bridge configuration cleared');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setPending(false);
     }
-  }, [loadStatus]);
+  }, [loadConfig]);
 
   const tabs: { key: TabKey; label: string }[] = useMemo(
     () => [
