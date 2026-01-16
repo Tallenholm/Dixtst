@@ -27,7 +27,7 @@ function createDateForTime(now: Date, time: string): Date | null {
 export class CircadianScheduler {
   private currentPhase: CircadianPhase = 'night';
   private nextPhaseAt?: Date;
-  private interval?: NodeJS.Timeout;
+  private timeout?: NodeJS.Timeout;
   private readonly scheduleRuns = new Map<string, ScheduleRunState>();
   private location?: LocationInfo;
   private schedules: ScheduleEntry[] = [];
@@ -47,20 +47,33 @@ export class CircadianScheduler {
   }
 
   start() {
-    if (this.interval) return;
+    if (this.timeout) return;
     this.recomputeTimeline();
-    this.tick(true).catch((error) => console.warn('Initial circadian tick failed', error));
-    this.interval = setInterval(() => {
-      this.tick().catch((error) => console.warn('Circadian tick failed', error));
-    }, 60 * 1000);
+    this.tick(true)
+      .catch((error) => console.warn('Initial circadian tick failed', error))
+      .finally(() => {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        this.timeout = setTimeout(this.runTick, 60 * 1000);
+      });
   }
 
   stop() {
-    if (this.interval) {
-      clearInterval(this.interval);
-      this.interval = undefined;
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = undefined;
     }
   }
+
+  private runTick = () => {
+    this.tick()
+      .catch((error) => console.warn('Circadian tick failed', error))
+      .finally(() => {
+        if (this.timeout) {
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+          this.timeout = setTimeout(this.runTick, 60 * 1000);
+        }
+      });
+  };
 
   getPhase(): { phase: CircadianPhase; next?: Date } {
     return { phase: this.currentPhase, next: this.nextPhaseAt };
