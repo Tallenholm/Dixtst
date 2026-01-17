@@ -13,7 +13,7 @@ export function usePolling(callback: () => void, interval: number) {
       savedCallback.current();
     }
 
-    let id: NodeJS.Timeout | null = null;
+    let id: ReturnType<typeof setInterval> | null = null;
 
     // Only start polling if currently visible
     if (document.visibilityState !== 'hidden') {
