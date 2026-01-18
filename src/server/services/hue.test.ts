@@ -19,6 +19,7 @@ vi.mock('node-hue-api', () => ({
         hue() { return this; }
         sat() { return this; }
         scene() { return this; }
+        transitiontime() { return this; }
       },
       LightState: class {
         on() { return this; }
@@ -26,6 +27,7 @@ vi.mock('node-hue-api', () => ({
         ct() { return this; }
         hue() { return this; }
         sat() { return this; }
+        transitiontime() { return this; }
       },
     },
   },

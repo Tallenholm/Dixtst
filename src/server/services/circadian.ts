@@ -115,8 +115,13 @@ export class CircadianScheduler {
       if (!this.hue.getActiveEffect()) {
         const setting = CIRCADIAN_PHASE_SETTINGS[phase];
         if (setting) {
+          // Use smart application to only affect lights that are already ON
           await this.hue
-            .applyStateToAllLights({ on: true, bri: setting.brightness, ct: setting.colorTemp })
+            .applyCircadianLightState({
+              bri: setting.brightness,
+              ct: setting.colorTemp,
+              transitionTime: forcePhase ? 40 : 6000, // 4s if forced (startup), 10m if natural
+            })
             .catch((error) => console.warn('Failed to apply circadian phase', error));
         }
       }
