@@ -67,7 +67,7 @@ export class HueBridgeService {
     this.effectListener = listener;
   }
 
-  private loadColorMap(): Record<string, ColorState> {
+  private async loadColorMap(): Promise<Record<string, ColorState>> {
     if (!this.colorMap) {
       try {
         // Resolve path relative to this file, then navigate to config/colors.json
@@ -75,11 +75,13 @@ export class HueBridgeService {
         // In prod: dist/server/services/hue.js -> ../../config/colors.json (needs to be copied)
         // If not found, try process.cwd() fallback
         let file = path.resolve(__dirname, '../../config/colors.json');
-        if (!fs.existsSync(file)) {
-             file = path.resolve(process.cwd(), 'src/config/colors.json');
+        try {
+          await fs.promises.access(file);
+        } catch {
+          file = path.resolve(process.cwd(), 'src/config/colors.json');
         }
 
-        const json = fs.readFileSync(file, 'utf-8');
+        const json = await fs.promises.readFile(file, 'utf-8');
         this.colorMap = JSON.parse(json) as Record<string, ColorState>;
       } catch (error) {
         console.warn('Failed to load color map, using defaults', error);
@@ -93,9 +95,9 @@ export class HueBridgeService {
     return this.colorMap;
   }
 
-  private mapColor(name?: string): ColorState {
+  private async mapColor(name?: string): Promise<ColorState> {
     if (!name) return {};
-    const colors = this.loadColorMap();
+    const colors = await this.loadColorMap();
     return colors[name] ?? {};
   }
 
@@ -363,7 +365,7 @@ export class HueBridgeService {
   }
 
   private async runBreathing(settings: EffectSettings) {
-    const baseColor = this.mapColor(settings.colors?.[0] ?? 'warm');
+    const baseColor = await this.mapColor(settings.colors?.[0] ?? 'warm');
     const speed = clamp(settings.speed ?? 3, 0.5, 10);
     const intensity = clamp(settings.intensity ?? 70, 10, 100);
     const mid = Math.round((intensity / 100) * 200);
@@ -390,7 +392,7 @@ export class HueBridgeService {
     const colors = settings.colors?.length ? settings.colors : ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
     const speed = clamp(settings.speed ?? 5, 0.5, 10);
     let index = 0;
-    const initialColor = this.mapColor(colors[index]);
+    const initialColor = await this.mapColor(colors[index]);
     await this.applyStateToAllLights({ on: true, bri: clamp((settings.intensity ?? 90) * 2.5, 60, 254), ...initialColor });
 
     await this.runEffectLoop(settings, Math.max(1200 / speed, 400), async () => {
@@ -398,14 +400,14 @@ export class HueBridgeService {
         await this.applyStateToAllLights({
           on: true,
           bri: clamp((settings.intensity ?? 90) * 2.5, 60, 254),
-          ...this.mapColor(colors[index]),
+          ...(await this.mapColor(colors[index])),
         });
     });
   }
 
   private async runFireplace(settings: EffectSettings) {
     const speed = clamp(settings.speed ?? 7, 1, 10);
-    const base = this.mapColor(settings.colors?.[0] ?? 'orange');
+    const base = await this.mapColor(settings.colors?.[0] ?? 'orange');
 
     await this.runEffectLoop(settings, Math.max(200, Math.round(600 / speed)), async () => {
         const flicker = 40 + Math.round(Math.random() * 40 * (settings.intensity ?? 60) / 100);
@@ -425,7 +427,7 @@ export class HueBridgeService {
 
     await this.runEffectLoop(settings, Math.max(1500 / speed, 600), async () => {
         const wave = 120 + Math.round(Math.sin(Date.now() / 1500) * 40);
-        const color = this.mapColor(colors[index]);
+        const color = await this.mapColor(colors[index]);
         index = (index + 1) % colors.length;
         await this.applyStateToAllLights({
           on: true,
@@ -440,7 +442,7 @@ export class HueBridgeService {
     const speed = clamp(settings.speed ?? 2, 0.5, 6);
 
     await this.runEffectLoop(settings, Math.max(1800 / speed, 800), async () => {
-        const color = this.mapColor(colors[Math.floor(Math.random() * colors.length)]);
+        const color = await this.mapColor(colors[Math.floor(Math.random() * colors.length)]);
         const brightness = clamp(160 + Math.round(Math.random() * 60), 60, 254);
         await this.applyStateToAllLights({ on: true, bri: brightness, ...color });
     });
@@ -453,7 +455,7 @@ export class HueBridgeService {
 
     await this.runEffectLoop(settings, Math.max(300, Math.round(700 / speed)), async () => {
         const onState = index % 2 === 0;
-        const color = this.mapColor(colors[index % colors.length]);
+        const color = await this.mapColor(colors[index % colors.length]);
         await this.applyStateToAllLights({
           on: true,
           bri: onState ? 254 : 80,
@@ -480,7 +482,7 @@ export class HueBridgeService {
         step += 1;
         const progress = step / steps;
         const colorIndex = Math.min(palette.length - 1, Math.floor(progress * palette.length));
-        const color = this.mapColor(palette[colorIndex]);
+        const color = await this.mapColor(palette[colorIndex]);
         const brightness = clamp(Math.round(progress * 254), 40, 254);
         await this.applyStateToAllLights({ on: true, bri: brightness, ...color });
         if (step >= steps) {
